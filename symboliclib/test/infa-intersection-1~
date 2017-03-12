@@ -1,0 +1,12 @@
+
+Ops a:1 b:1 x:0
+
+Automaton A @INFA
+States x1 x2
+Final States x2 
+Transitions
+x -> x1
+"in{a,b,c}"(x1) -> x2
+"in{b}"(x1) -> x1
+"in{a}"(x2) -> x2
+"in{b}"(x2) -> x1

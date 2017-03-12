@@ -1,0 +1,14 @@
+Ops b:1 a:1 x:0 
+
+Automaton A @INFA
+States P Q R W	
+Final States Q
+Transitions
+x -> P
+"in{a,b}"(P) -> P
+"in{a,b}"(P) -> R
+"in{c,d}"(P) -> P
+"in{c,d}"(P) -> W
+"in{a,c}"(P) -> P
+"in{a,c}"(P) -> Q
+"in{a,c}"(P) -> R

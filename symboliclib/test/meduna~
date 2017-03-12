@@ -1,0 +1,20 @@
+Ops 0:1 1:1 x:0 
+
+Automaton A @INFA
+States q1 q2 q3 q4 q5
+Final States q4
+Transitions
+x -> q1
+"in{a}"(q1) -> q2
+"in{b}"(q1) -> q5
+"in{c}"(q1) -> q3
+"in{a}"(q2) -> q1
+"in{b}"(q2) -> q4
+"in{c}"(q2) -> q3
+"in{a,b,c}"(q3) -> q3
+"in{a,b}"(q4) -> q4
+"in{c}"(q4) -> q3
+"in{c}"(q5) -> q3
+"in{a}"(q5) -> q1
+"in{b}"(q5) -> q4
+

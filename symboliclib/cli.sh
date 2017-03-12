@@ -1,0 +1,62 @@
+#!/bin/bash
+
+if [ $# -gt 1 ]; then
+    command=$1
+    file1=$2
+else
+    if [ "$1" = "--help" ]; then
+        echo "COMMAND LINE INTERFACE TO SYMBOLICLIB
+
+    Usage: ./cli [command] [file1] [file2]
+    file is a name of input file with automaton in Timbuk format
+
+    Available commands:
+        [command - number of needed automata]
+        complement - 1
+        determinize - 1
+        minimize - 1
+        simulations - 1
+        union - 2
+        intersection - 2
+        "
+    else
+    echo "Please give some command and input file. Help: ./cli --help"
+    fi
+    exit 0
+fi
+
+case $command in
+complement)
+  python3 -c "import symboliclib; a = symboliclib.parse('$file1'); a.complement(); a.print_automaton();"
+  ;;
+determinize)
+  python3 -c "import symboliclib; a = symboliclib.parse('$file1'); a.determinize(); a.print_automaton();"
+  ;;
+minimize)
+  python3 -c "import symboliclib; a = symboliclib.parse('$file1'); a.minimize(); a.print_automaton();"
+  ;;
+simulations)
+  python3 -c "import symboliclib; a = symboliclib.parse('$file1'); print(a.simulations());"
+  ;;
+union)
+  if [ $# -gt 2 ]; then
+    file2=$3
+    python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); c = a.union(b); c.print_automaton();"
+  else
+    echo "Another argument needed."
+    exit 0
+  fi
+  ;;
+intersection)
+  if [ $# -gt 2 ]; then
+    file2=$3
+    python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); c = a.intersection(b); c.print_automaton();"
+  else
+    echo "Another argument needed."
+    exit 0
+  fi
+  ;;
+*)
+  echo "Unknown command."
+  ;;
+esac

@@ -1,0 +1,62 @@
+OBSAH knižnice
+
+cli.sh
+	- simple command line interface
+	- spustenie: ./cli.sh command file [file2]
+	-príklad: ./cli.sh determinize ./test/deter
+
+__init__.py
+in_notin.py
+	- predikát in{}/not_in{}
+in_notin_parser.py
+	- parser pre in{}/not_in{} predikáty
+letter.py
+	- predikát letter - klasický symbol v automate
+letter_parser.py
+	- parser ku predikátu letter
+LFA.py
+	- letter finite automata, mal by optimalizovať algoritmy pre použitie na klasických automatoch
+	- momentálne by malo fungovať intersection
+PredicateInterface.py
+	- definuje Interface pre predikáty
+SA.py
+	- obsahuje metódy pre symbolic automaty
+	- malo by fungovať minimalizácia, determinizácia, prevod automatu na kompletný, komplement pre deterministické automaty + metódy zo Symbolic
+ST.py
+	- obsahuje metódy pre symbolic transducer
+	- momentálne sa vie iba načítať, vypísať, zistiť, či je deterministický + metódy zo Symbolic
+Symbolic.py
+	- obsahuje metódy spoločné pre transducery a automaty
+	- malo by fungovať simple_reduce, intersection, reverse, is_empty, print_automaton + obsahuje veľa pomocných funkcií
+symboliclib.py
+	- obsahuje main a rôzne preddefnované testy
+symbolic_parser.py
+	- parser na všetko
+	- metóda parse(názov súboru)
+transducer_predicate.py
+	- robí zo všetkých dostupných predikátov labely pre transducer : ukladá si input a output predicate a zobecňuje nad nimi operácie ako conjunction, complement, ...
+
+|- test
+	- rôzne automaty vhodné pre testovanie
+
+POUŽITIE
+získanie automatu:
+	-> import symboliclib
+	-> aut = parse(filename)
+operácie:
+	-> aut.determinize()
+	-> aut.print_automaton([filename])
+
+	-> v metóde __main__ symboliclib sú niektoré načítania automatov a volanie funkcií nad nimi
+
+
+
+DOSTUPNÉ PREDIKÁTY A KDE ICH NÁJSŤ
+ - každý má svoj súbor XXX.py a parser XXX_parser.py
+ - ktorý parser sa vyberie sa určuje v symbolic_parser na riadkoch 55-62
+ - aký druh automatu (Symbolic, Transducer, Letter) sa vytvorí sa určuje funkciou na konci symbolic_parser
+
+VSTUPNÝ FORMÁT
+- inšpirovaný Timbuk
+- predikát, aj keď je to obyčajný symbol, musí byť uzavrený v ""
+- parser by mal byť pripavený na to, že dostane string uzavrený v "" a urobí z neho predikát, ktorý vráti späť. Predikát sa potom použije na indexovanie pri ukladaní transitions

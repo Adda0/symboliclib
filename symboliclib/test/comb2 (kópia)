@@ -1,0 +1,11 @@
+Ops b:1 a:1 c:1 d:1 x:0 
+
+Automaton A @INFA
+States X Y C D
+Final States X 
+Transitions
+x -> X
+"in{a}"(X) -> Y
+"in{b}"(X) -> Y
+"in{c}"(X) -> Y
+"in{d}"(Y) -> X

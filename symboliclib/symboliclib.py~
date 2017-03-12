@@ -1,0 +1,96 @@
+"""
+Just a main class
+"""
+
+from __future__ import print_function
+# from letter import Letter
+from in_notin import InNotin
+from parser import parse
+import FA
+
+
+def tests():
+    """
+    Test predicate functions
+    """
+    print("Predicates test")
+    pred = InNotin()
+    pred2 = InNotin()
+    pred.type = "in"
+    pred.symbols = {"a", "b", "c"}
+    print("in{a,b,c} complement: ")
+    print(pred.complement())
+    pred.type = "not_in"
+    pred.symbols = {"a", "b", "c"}
+    print("not_in{a,b,c} complement: ")
+    print(pred.complement())
+
+    pred.type = "not_in"
+    pred.symbols = {"a", "b", "c"}
+    pred2.type = pred.type = "not_in"
+    pred2.symbols = {"b", "c", "d", "e"}
+    print("not_in{a,b,c} not_in{b,c,d,e} disjunction: ")
+    print(pred.disjunction(pred2))
+    print("not_in{a,b,c} not_in{b,c,d,e} conjunction: ")
+    print(pred.conjunction(pred2))
+    pred.type = "in"
+    pred2.type = "in"
+    print("in{a,b,c} in{b,c,d,e} disjunction: ")
+    print(pred.disjunction(pred2))
+    print("in{a,b,c} in{b,c,d,e} conjunction: ")
+    print(pred.conjunction(pred2))
+    pred2.type = "not_in"
+    print("in{a,b,c} not_in{b,c,d,e} disjunction: ")
+    print(pred.disjunction(pred2))
+    print("in{a,b,c} not_in{b,c,d,e} conjunction: ")
+    print(pred.conjunction(pred2))
+    pred.type = "not_in"
+    pred2.type = "in"
+    print("not_in{a,b,c} in{b,c,d,e} disjunction: ")
+    print(pred.disjunction(pred2))
+    print("not_in{a,b,c} in{b,c,d,e} conjunction: ")
+    print(pred.conjunction(pred2))
+
+
+if __name__ == '__main__':
+    """automaton1 = parse("./test/infa-intersection-1")
+    #automaton1.print_automaton()
+    automaton2 = parse("./test/infa-itersection-2")
+    #automaton2.print_automaton()
+    b = automaton1.intersection(automaton2)
+    b.print_automaton()
+    b.simple_reduce()
+    b.print_automaton()
+    exit()"""
+    a = parse("./test/big2")
+    a.print_automaton()
+    det = a.determinize()
+    det.print_automaton()
+    print(a.is_deterministic())
+    print(det.is_deterministic())
+    exit()
+    #tests()
+    #exit()
+    """automaton1 = parse("./test/infa-intersection-1")
+    automaton1.print_automaton()
+    # automaton1.reverse()
+    # automaton1.reversed.print_automaton()
+    # com = automaton1.complement()
+    # com.print_automaton()
+
+    automaton2 = parse("./test/infa-itersection-2")
+    automaton2.print_automaton()
+    b = automaton1.intersection(automaton2)
+    b.print_automaton()
+    c = automaton1.union(automaton2)
+    print("Automaton C")
+    c.print_automaton()
+    infa = parse("./test/infa-intersection-1")
+    print(infa.is_deterministic())
+    a = parse("./test/empty")
+    a.reduce()
+    a.print_automaton()"""
+    a = parse("./test/unite2")
+    a.unite_labels()
+    a.print_automaton()
+

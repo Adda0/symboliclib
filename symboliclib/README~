@@ -1,0 +1,44 @@
+OBSAH knižnice
+
+__init__.py
+in_notin.py
+	- predikát in{}/not_in{}
+in_notin_parser.py
+	- parser pre in{}/not_in{} predikáty
+letter.py
+	- predikát letter - klasický symbol v automate
+letter_parser.py
+	- parser ku predikátu letter
+LFA.py
+	- letter finite automata, mal by optimalizovať algoritmy pre použitie na klasických automatoch, momentálne asi celkom nefunguje
+PredicateInterface.py
+	- definuje Interface pre predikáty
+SA.py
+	- obsahuje metódy pre symbolic automaton
+ST.py
+	- obsahuje metódy pre symbolic transducer
+Symbolic.py
+	- obsahuje metódy spoločné pre transducery a automaty
+symboliclib.py
+	- obsahuje main a rôzne preddefnované testy
+symbolic_parser.py
+	- parser na všetko
+	- metóda parse(názov súboru)
+transducer_predicate.py
+
+|- test
+	- rôzne automaty vhodné pre testovanie
+
+POUŽITIE
+python -> import symboliclib
+parse
+operácie
+command line -> python3 symboliclib.py
+	-> v metóde __main__ symboliclib prepisovať testy a ich volania
+
+DOSTUPNÉ PREDIKÁTY A ICH SKRATKY
+
+VSTUPNÝ FORMÁT
+- inšpirovaný Timbuk
+- predikát, aj keď je to obyčajný symbol, musí byť uzavrený v ""
+- parser by mal byť pripavený na to, že dostane string uzavrený v "" a urobí z neho predikát, ktorý vráti späť. Predikát sa potom použije na indexovanie pri ukladaní transitions

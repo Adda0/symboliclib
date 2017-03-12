@@ -1,0 +1,11 @@
+Ops b:1 a:1 c:1 d:1 x:0 
+
+Automaton A @LFA
+States A B
+Final States B
+Transitions
+x -> A
+"a"(A) -> B
+"b"(A) -> B
+"c"(A) -> B
+"d"(B) -> A
