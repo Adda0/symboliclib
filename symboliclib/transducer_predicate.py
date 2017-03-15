@@ -161,7 +161,9 @@ class TransPred(PredicateInterface):
             if self.identity:
                 return a
             else:
-                return random.choice(list(self.output.to_letters(alphabet)))
+                for symbol in alphabet:
+                    if self.output.has_letter(symbol):
+                        return symbol
         else:
             return False
 

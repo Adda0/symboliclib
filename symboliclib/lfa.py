@@ -17,6 +17,7 @@ class LFA(SA):
         self.final = set()
         self.transitions = {}
         self.deterministic = None
+        self.determinized = None
         self.reversed = None
         self.automaton_type = "LFA"
 
@@ -149,8 +150,6 @@ class LFA(SA):
         self.determinized.get_complete()
         other.determinize(True)
         other.determinized.get_complete()
-        self.determinized.print_automaton()
-        other.determinized.print_automaton()
 
         queue = [(self.determinized.start.pop(), other.determinized.start.pop())]
         checked = []

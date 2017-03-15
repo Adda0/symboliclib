@@ -38,8 +38,10 @@ def parse(testfile):
                     parts = parts[0].split("\"")
                     predicate = parsePredicate(parts[1], automaton_type)
                 else:
-                    parts = ["", "", parts[0][1:]]
-                    predicate = parsePredicate(line[0], automaton_type)
+                    symbol = parts[0].split("(")[0].strip()
+                    start_st = parts[0].split("(")[1]
+                    parts = ["", "", start_st]
+                    predicate = parsePredicate(symbol, automaton_type)
 
                 start_state = parts[2].replace("(", "").replace(")", "").strip()
 

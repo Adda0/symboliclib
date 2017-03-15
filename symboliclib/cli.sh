@@ -18,6 +18,8 @@ else
         simulations - 1
         union - 2
         intersection - 2
+        inclusion - 2
+        equality - 2
         "
     else
     echo "Please give some command and input file. Help: ./cli --help"
@@ -51,6 +53,24 @@ intersection)
   if [ $# -gt 2 ]; then
     file2=$3
     python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); c = a.intersection(b); c.print_automaton();"
+  else
+    echo "Another argument needed."
+    exit 0
+  fi
+  ;;
+inclusion)
+  if [ $# -gt 2 ]; then
+    file2=$3
+    python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); print(a.is_inclusion(b));"
+  else
+    echo "Another argument needed."
+    exit 0
+  fi
+  ;;
+equality)
+  if [ $# -gt 2 ]; then
+    file2=$3
+    python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); print(a.is_equivalent(b));"
   else
     echo "Another argument needed."
     exit 0
