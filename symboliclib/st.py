@@ -4,6 +4,7 @@ ST - Symbolic Transducer class
 from __future__ import print_function
 
 from symbolic import Symbolic
+import itertools
 
 
 class ST(Symbolic):
@@ -21,6 +22,8 @@ class ST(Symbolic):
         # reversed variant of the automaton
         self.reversed = None
         self.automaton_type = "INT"
+        self.has_epsilon = None
+        self.epsilon_Free = None
 
     def is_deterministic(self):
         """
@@ -28,6 +31,8 @@ class ST(Symbolic):
         sets the deterministic attribute
         :return: bool
         """
+        if len(self.start) > 1:
+            return False
         if self.deterministic is not None:
             # the deterministic attribute is already set, no need to check again
             return self.deterministic
@@ -59,28 +64,32 @@ class ST(Symbolic):
             return False
 
         comp = self.get_new()
-        comp.start = self.start.copy()
         comp.alphabet = self.alphabet.intersection(other.alphabet)
         comp.reversed = None
 
-        start1 = self.start.copy().pop()
+        """start1 = self.start.copy().pop()
         start2 = other.start.copy().pop()
         first = str(start1) + "," + str(start2)
         comp.start = set()
         comp.start.add(first)
-        queue = [first]
+        queue = [first]"""
+
+        queue = list(itertools.product(self.start, other.start))
+        comp.start = set()
+        for q in queue:
+            comp.start.add("[" + q[0] + "_1|" + q[1] + "_2]")
 
         while len(queue) > 0:
             combined = queue.pop()
-            comp.states.add(combined)
-            if combined not in comp.transitions:
-                comp.transitions[combined] = {}
-            states = combined.split(",")
-            state1 = states[0]
-            state2 = states[1]
+            state1 = combined[0]
+            state2 = combined[1]
+            combined_str = "[" + state1 + "_1|" + state2 + "_2]"
+
+            if combined_str not in comp.transitions:
+                comp.transitions[combined_str] = {}
 
             if state1 in self.final or state2 in other.final:
-                comp.final.add(combined)
+                comp.final.add(combined_str)
 
             if state1 in self.transitions and state2 in other.transitions:
                 for label in self.transitions[state1]:
@@ -89,24 +98,24 @@ class ST(Symbolic):
                         if common and common.is_satisfiable():
                             new_label = label.combine(label2)
                             if new_label and new_label.is_satisfiable():
-                                # @TODO co ked nie je deterministicky
-                                endstate = self.transitions[state1][label][0] + "," + \
-                                           other.transitions[state2][label2][0]
+                                endstate = (self.transitions[state1][label][0], other.transitions[state2][label][0])
+                                endstate_str = "[" + endstate[0] + "_1|" + endstate[1] + "_2]"
 
                                 if new_label not in comp.transitions[combined]:
-                                    comp.transitions[combined][new_label] = [endstate]
+                                    comp.transitions[combined][new_label] = [endstate_str]
                                 else:
-                                    comp.transitions[combined][new_label].append(endstate)
+                                    comp.transitions[combined][new_label].append(endstate_str)
 
-                                if endstate not in queue and endstate not in comp.states:
+                                if endstate not in queue and endstate_str not in comp.states:
                                     queue.append(endstate)
 
         comp.simple_reduce()
-        comp.remove_commas_from_states()
+        #comp.remove_commas_from_states()
 
         return comp
 
     def check_translation(self, word, word2, state=None):
+        # @TODO pre viac zaciatocnych stavov
         if len(word) == 0 and len(word2) == 0 and state in self.final:
             return True
 
@@ -127,6 +136,7 @@ class ST(Symbolic):
         return False
 
     def translate_word(self, word, state=None):
+        # @TODO pre viac zaciatocnych stavov
         if len(word) == 0:
             if state and state in self.final:
                 return "a"

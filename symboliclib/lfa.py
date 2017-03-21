@@ -4,6 +4,7 @@ LFA - Letter Finite Automaton class
 from __future__ import print_function
 from sa import SA
 from copy import deepcopy
+import itertools
 
 
 class LFA(SA):
@@ -34,6 +35,11 @@ class LFA(SA):
             # the deterministic attribute is already set, no need to check again
             return self.deterministic
 
+        # automaton with more than one start state is nondeterministic
+        if len(self.start) > 1:
+            self.deterministic = False
+            return False
+
         for trans_group in self.transitions:
             for trans_label in self.transitions[trans_group]:
                 if len(self.transitions[trans_group][trans_label]) > 1:
@@ -54,41 +60,45 @@ class LFA(SA):
         intersect.alphabet = self.alphabet.intersection(a2.alphabet)
         intersect.reversed = None
 
-        start1 = self.start.copy().pop()
-        start2 = a2.start.copy().pop()
-        first = str(start1) + "," + str(start2)
+        queue = list(itertools.product(self.start, a2.start))
         intersect.start = set()
-        intersect.start.add(first)
-        queue = [first]
+        for q in queue:
+            intersect.start.add("[" + q[0] + "_1|" + q[1] + "_2]")
 
         while len(queue) > 0:
             combined = queue.pop()
-            intersect.states.add(combined)
-            if combined not in intersect.transitions:
-                intersect.transitions[combined] = {}
-            states = combined.split(",")
-            state1 = states[0]
-            state2 = states[1]
+            state1 = combined[0]
+            state2 = combined[1]
+            combined_str = "[" + state1 + "_1|" + state2 + "_2]"
+            intersect.states.add(combined_str)
+            if combined_str not in intersect.transitions:
+                intersect.transitions[combined_str] = {}
 
             if state1 in self.final and state2 in a2.final:
-                intersect.final.add(combined)
+                intersect.final.add(combined_str)
 
-            for label in self.transitions[state1]:
-                if label in a2.transitions[state2]:
-                    endstate = self.transitions[state1][label][0] + "," + a2.transitions[state2][label][0]
+            if state1 in self.transitions and state2 in a2.transitions:
+                for label in self.transitions[state1]:
+                    if label in a2.transitions[state2]:
+                        endstate = (self.transitions[state1][label][0], a2.transitions[state2][label][0])
+                        endstate_str = "[" + endstate[0] + "_1|" + endstate[1] + "_2]"
 
-                    if label not in intersect.transitions[combined]:
-                        intersect.transitions[combined][label] = [endstate]
-                    else:
-                        intersect.transitions[combined][label].append(endstate)
+                        if label not in intersect.transitions[combined_str]:
+                            intersect.transitions[combined_str][label] = [endstate_str]
+                        else:
+                            intersect.transitions[combined_str][label].append(endstate_str)
 
-                    if endstate not in queue and endstate not in intersect.states:
-                        queue.append(endstate)
+                        if endstate not in queue and endstate_str not in intersect.states:
+                            queue.append(endstate)
+
+        intersect.simple_reduce()
 
         return intersect
 
     def simulations(self):
+        self.get_complete()
         self.print_automaton()
+
         self.reverse()
         rever_trans = self.reversed.transitions
 
@@ -134,14 +144,16 @@ class LFA(SA):
                                             result.add((l, k))
                                             c.append((l, k))
 
-        """simulations = []
+        simulations = []
         q = self.states
         while len(q):
             state = q.pop()
             for state2 in q:
                 if state != state2:
                     if (state, state2) not in result and (state2, state) not in result:
-                        simulations.append((state, state2))"""
+                        simulations.append((state, state2))
+
+        print(simulations)
 
         return result
 
@@ -151,7 +163,7 @@ class LFA(SA):
         other.determinize(True)
         other.determinized.get_complete()
 
-        queue = [(self.determinized.start.pop(), other.determinized.start.pop())]
+        queue = list(itertools.product(self.determinized.start, other.determinized.start))
         checked = []
 
         while len(queue) > 0:
@@ -181,25 +193,27 @@ class LFA(SA):
         """
         Converts automaton to language equal complete automaton
         """
-        if not self.deterministic:
-            self.determinize()
+        # @TODO bleh. Nejako vytvárať nové lettery odtiaľto.
+        label_prototype = list(self.transitions[list(self.transitions.keys())[0]].keys())[0]
         # create one nonterminating state
-        self.states.add("error")
+        self.states.add("qsink")
         # for transitions from each state
-        for state in deepcopy(self.transitions):
-            labels = list(self.transitions[state].keys())
+        for state in deepcopy(self.states):
+            if state in self.transitions:
+                labels = list(self.transitions[state].keys())
+            else:
+                labels = []
+                self.transitions[state] = {}
             for a in self.alphabet:
                 if a not in labels:
-                    new_label = labels[0].create(a)
-                    self.transitions[state][new_label] = ["error"]
+                    new_label = label_prototype.create(a)
+                    self.transitions[state][new_label] = ["qsink"]
 
             for label in labels:
-                # rename all error states to "error"
+                # rename all nonterminating states to "qsink"
                 endstates = self.transitions[state][label]
                 for endstate in endstates:
                     if self.is_useless(endstate):
                         self.transitions[state][label].remove(endstate)
-                        if "error" not in self.transitions[state][label]:
-                            self.transitions[state][label].append("error")
-
-            self.simple_reduce()
+                        if "qsink" not in self.transitions[state][label]:
+                            self.transitions[state][label].append("qsink")

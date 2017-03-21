@@ -3,7 +3,7 @@ Symbolic automaton class
 all methods common for FA and FT
 """
 from __future__ import print_function
-
+import itertools
 from copy import deepcopy
 
 
@@ -22,6 +22,8 @@ class Symbolic(object):
         # reversed variant of the automaton
         self.reversed = None
         self.automaton_type = "SA"
+        self.has_epsilon = None
+        self.epsilon_Free = None
 
     def reverse(self):
         """
@@ -98,6 +100,8 @@ class Symbolic(object):
 
         for state in self.states:
             if self.is_useless(state):
+                if state in self.start:
+                    self.start.remove(state)
                 if state in self.transitions:
                     del self.transitions[state]
 
@@ -123,8 +127,8 @@ class Symbolic(object):
         Checks whether a state is deadend - doesnt lead to end state
         :return: bool
         """
-        if state in self.start:
-            return False
+        #if state in self.start:
+        #    return False
         queue = [state]
         checked = set()
 
@@ -141,7 +145,7 @@ class Symbolic(object):
                     for endstate in self.transitions[state][label]:
                         if endstate in self.final:
                             return False
-                        if endstate not in checked:
+                        if endstate not in checked and endstate not in queue:
                             queue.append(endstate)
 
         return True
@@ -295,92 +299,98 @@ class Symbolic(object):
         intersect.alphabet = self.alphabet.intersection(automaton_2.alphabet)
         intersect.reversed = None
 
-        start1 = self.start.copy().pop()
+        """start1 = self.start.copy().pop()
         start2 = automaton_2.start.copy().pop()
         first = str(start1) + "," + str(start2)
         intersect.start = set()
         intersect.start.add(first)
-        queue = [first]
+        queue = [first]"""
+        queue = list(itertools.product(self.start, automaton_2.start))
+        intersect.start = set()
+        for q in queue:
+            intersect.start.add("[" + q[0] + "_1|" + q[1] + "_2]")
 
         while len(queue) > 0:
             combined = queue.pop()
-            intersect.states.add(combined)
-            if combined not in intersect.transitions:
-                intersect.transitions[combined] = {}
-            states = combined.split(",")
-            state1 = states[0]
-            state2 = states[1]
+            state1 = combined[0]
+            state2 = combined[1]
+            combined_str = "[" + state1 + "_1|" + state2 + "_2]"
+            intersect.states.add(combined_str)
+
+            if combined_str not in intersect.transitions:
+                intersect.transitions[combined_str] = {}
 
             if state1 in self.final and state2 in automaton_2.final:
-                intersect.final.add(combined)
+                intersect.final.add(combined_str)
 
             if state1 in self.transitions and state2 in automaton_2.transitions:
                 for label in self.transitions[state1]:
                     for label2 in automaton_2.transitions[state2]:
                         common = label.conjunction(label2)
-                        print(common)
+                        #print(common)
                         if common and common.is_satisfiable():
-                            endstate = self.transitions[state1][label][0] + "," + automaton_2.transitions[state2][label2][0]
+                            endstate = (self.transitions[state1][label][0], automaton_2.transitions[state2][label][0])
+                            endstate_str = "[" + endstate[0] + "_1|" + endstate[1] + "_2]"
+                            #endstate = self.transitions[state1][label][0] + "," + automaton_2.transitions[state2][label2][0]
 
                             if common not in intersect.transitions[combined]:
-                                intersect.transitions[combined][common] = [endstate]
+                                intersect.transitions[combined][common] = [endstate_str]
                             else:
-                                intersect.transitions[combined][common].append(endstate)
+                                intersect.transitions[combined][common].append(endstate_str)
 
-                            if endstate not in queue and endstate not in intersect.states:
+                            if endstate not in queue and endstate_str not in intersect.states:
                                 queue.append(endstate)
-                            print(intersect.transitions)
+                            #print(intersect.transitions)
 
         intersect.simple_reduce()
-        print(intersect.transitions)
-        intersect.remove_commas_from_states()
+        #print(intersect.transitions)
+        #intersect.remove_commas_from_states()
 
         return intersect
 
-    def union(self, automaton_2):
+    def union(self, other):
         """Union
         Returns union
         """
         uni = self.get_new()
-        uni.alphabet = self.alphabet.intersection(automaton_2.alphabet)
+        uni.alphabet = self.alphabet.union(other.alphabet)
         uni.reversed = None
 
-        start1 = self.start.copy().pop()
-        start2 = automaton_2.start.copy().pop()
-        first = str(start1) + "," + str(start2)
         uni.start = set()
-        uni.start.add(first)
-        queue = [first]
+        for q in self.start:
+            uni.start.add(q + "_1")
+        for q in other.start:
+            uni.start.add(q + "_2")
 
-        while len(queue) > 0:
-            combined = queue.pop()
-            uni.states.add(combined)
-            if combined not in uni.transitions:
-                uni.transitions[combined] = {}
-            states = combined.split(",")
-            state1 = states[0]
-            state2 = states[1]
+        uni.states = set()
+        for q in self.states:
+            uni.states.add(q + "_1")
+        for q in other.states:
+            uni.states.add(q + "_2")
 
-            if state1 in self.final or state2 in automaton_2.final:
-                uni.final.add(combined)
+        uni.final = set()
+        for q in self.final:
+            uni.final.add(q + "_1")
+        for q in other.final:
+            uni.final.add(q + "_2")
 
-            if state1 in self.transitions and state2 in automaton_2.transitions:
-                for label in self.transitions[state1]:
-                    for label2 in automaton_2.transitions[state2]:
-                        common = label.disjunction(label2)
-                        if common and common.is_satisfiable():
-                            endstate = self.transitions[state1][label][0] + "," + automaton_2.transitions[state2][label2][0]
+        for state in self.transitions:
+            state_str = state + "_1"
+            uni.transitions[state_str] = {}
+            for label in self.transitions[state]:
+                uni.transitions[state_str][label] = []
+                for endstate in self.transitions[state][label]:
+                    uni.transitions[state_str][label].append(endstate + "_1")
 
-                            if common not in uni.transitions[combined]:
-                                uni.transitions[combined][common] = [endstate]
-                            else:
-                                uni.transitions[combined][common].append(endstate)
-
-                            if endstate not in queue and endstate not in uni.states:
-                                queue.append(endstate)
+        for state in other.transitions:
+            state_str = state + "_2"
+            uni.transitions[state_str] = {}
+            for label in other.transitions[state]:
+                uni.transitions[state_str][label] = []
+                for endstate in other.transitions[state][label]:
+                    uni.transitions[state_str][label].append(endstate + "_2")
 
         uni.simple_reduce()
-        uni.remove_commas_from_states()
 
         return uni
 

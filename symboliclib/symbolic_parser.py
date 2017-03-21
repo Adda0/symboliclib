@@ -29,7 +29,7 @@ def parse(testfile):
                 """if '"' not in line:
                     start.add(parts[1].strip())
                     continue"""
-                if not start:
+                if "(" not in line and ")" not in line:
                     start.add(parts[1].strip())
                     continue
 

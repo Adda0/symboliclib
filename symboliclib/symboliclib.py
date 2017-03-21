@@ -141,4 +141,5 @@ if __name__ == '__main__':
     #test_automata_inclusion()
     #test_automata_equivalence()
     #parse_timbuk()
-    translate_word()
+    #translate_word()
+    test_minim()

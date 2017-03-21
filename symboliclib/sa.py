@@ -5,6 +5,7 @@ from __future__ import print_function
 
 from copy import deepcopy
 from symbolic import Symbolic
+import itertools
 
 
 class SA(Symbolic):
@@ -23,6 +24,8 @@ class SA(Symbolic):
         self.reversed = None
         self.determinized = None
         self.automaton_type = "INFA"
+        self.has_epsilon = None
+        self.epsilon_Free = None
 
     @staticmethod
     def get_new():
@@ -37,6 +40,10 @@ class SA(Symbolic):
         if self.deterministic is not None:
             # the deterministic attribute is already set, no need to check again
             return self.deterministic
+
+        if len(self.start) > 1:
+            self.deterministic = False
+            return False
 
         for trans_group in self.transitions:
             for trans_label in self.transitions[trans_group]:
@@ -208,7 +215,7 @@ class SA(Symbolic):
         other.determinize(True)
         other.determinized.get_complete()
 
-        queue = [(self.determinized.start.pop(), other.determinized.start.pop())]
+        queue = list(itertools.product(self.determinized.start, other.determinized.start))
         checked = []
 
         while len(queue) > 0:
@@ -256,8 +263,6 @@ class SA(Symbolic):
         """
         Converts automaton to language equal complete automaton
         """
-        if not self.deterministic:
-            self.determinize()
         # create one nonterminating state
         self.states.add("error")
         # for transitions from each state
@@ -327,10 +332,16 @@ class SA(Symbolic):
             return
 
         det = self.get_new()
-        det.start = self.start.copy()
+        #det.start = self.start.copy()
+        det.start = set()
+        det.start.add(",".join(self.start))
+
         det.alphabet = self.alphabet.copy()
 
-        queue = self.start.copy()
+        #queue = self.start.copy()
+        queue = set()
+        queue.add(",".join(self.start))
+
         checked = []
         while len(queue) > 0:
             state = queue.pop()
@@ -370,11 +381,14 @@ class SA(Symbolic):
         """
         Converts automaton to language equal minimal automaton
         """
+        self.determinize()
         self.get_complete()
+        self.print_automaton()
 
         min_states = set()
-        min_states.add(",".join(sorted(self.final)))
-        min_states.add(",".join(sorted(self.states - self.final)))
+        min_states.add("|".join(sorted(self.final)))
+        min_states.add("|".join(sorted(self.states - self.final)))
+        print(min_states)
         while True:
             new_trans = {}
             # to check if queue was changed
@@ -383,7 +397,7 @@ class SA(Symbolic):
             while len(queue) > 0:
                 state_group = queue.pop()
                 new_trans[state_group] = {}
-                states = state_group.split(",")
+                states = state_group.split("|")
 
                 for state in states:
                     new_trans[state_group][state] = {}
@@ -404,7 +418,7 @@ class SA(Symbolic):
                         if old_state in new_trans[state_group]:
                             if new_trans[state_group][old_state] == item:
                                 new_state_group.append(old_state)
-                    next_iteration.add(",".join(sorted(new_state_group)))
+                    next_iteration.add("|".join(sorted(new_state_group)))
 
             # if the subsets did not change between iterations, end
             if next_iteration == min_states:
@@ -418,7 +432,7 @@ class SA(Symbolic):
         new_start = set()
         for state_group in min_states:
             self.transitions[state_group] = list(new_trans[state_group].values())[0]
-            for state_old in state_group.split(","):
+            for state_old in state_group.split("|"):
                 if state_old in self.final:
                     new_final.add(state_group)
                 if state_old in self.start:

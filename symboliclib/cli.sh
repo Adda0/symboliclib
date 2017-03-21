@@ -12,6 +12,7 @@ else
 
     Available commands:
         [command - number of needed automata]
+        load - 1 [only reads and pints an automaton]
         complement - 1
         determinize - 1
         minimize - 1
@@ -30,6 +31,9 @@ fi
 case $command in
 complement)
   python3 -c "import symboliclib; a = symboliclib.parse('$file1'); a.complement(); a.print_automaton();"
+  ;;
+load)
+  python3 -c "import symboliclib; a = symboliclib.parse('$file1'); a.print_automaton();"
   ;;
 determinize)
   python3 -c "import symboliclib; a = symboliclib.parse('$file1'); a.determinize(); a.print_automaton();"
