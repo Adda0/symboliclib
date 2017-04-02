@@ -24,12 +24,62 @@ class SA(Symbolic):
         self.reversed = None
         self.determinized = None
         self.automaton_type = "INFA"
-        self.has_epsilon = None
-        self.epsilon_Free = None
+        self.is_epsilon_free = None
+        self.epsilon_free = None
+        self.label = None
 
     @staticmethod
     def get_new():
         return SA()
+
+    def remove_epsilon(self):
+        if self.epsilon_free is not None:
+            return self.epsilon_free
+        if self.is_epsilon_free:
+            return self
+
+        eps_free = deepcopy(self)
+        for state in self.transitions:
+            closure = self.get_epsilon_closure(state)
+            # every start state that has a final state in eps closure must be final
+            if state in self.start:
+                if len(self.final.intersection(closure)):
+                    self.final.add(state)
+            # add transitions that will replace epsilon transitions
+            for closure_state in closure:
+                if closure_state in self.transitions:
+                    for label in self.transitions[closure_state]:
+                        if label.is_epsilon:
+                            continue
+                        for endstate in self.transitions[closure_state][label]:
+                            if label in eps_free.transitions[state]:
+                                if endstate not in eps_free.transitions[state][label]:
+                                    eps_free.transitions[state][label].append(endstate)
+                            else:
+                                eps_free.transitions[state][label] = [endstate]
+        # delete epsilon transitions
+        for state in self.transitions:
+            for label in self.transitions[state]:
+                if label.is_epsilon:
+                    del eps_free.transitions[state][label]
+
+        self.epsilon_free = eps_free
+
+        return eps_free
+
+    def get_epsilon_closure(self, state, checked=set()):
+        result = set()
+
+        if state in self.transitions:
+            for label in self.transitions[state]:
+                if label.is_epsilon:
+                    for endstate in self.transitions[state][label]:
+                        if endstate not in checked:
+                            result.add(endstate)
+                            checked.add(endstate)
+                            result = result.union(self.get_epsilon_closure(endstate, checked))
+
+        return result
 
     def is_deterministic(self):
         """
@@ -70,26 +120,21 @@ class SA(Symbolic):
         Converts automaton into complement
         :return: complement automaton
         """
-        backup = None
         if self.deterministic is None:
             self.is_deterministic()
 
-        if not self.deterministic:
-            backup = deepcopy(self)
-            self.determinize()
+        det = self.determinize()
 
-        complement = self.get_new()
-        complement.alphabet = self.alphabet
-        complement.states = self.states
-        complement.start = self.start
+        complement = det.get_new()
+        complement.alphabet = det.alphabet
+        complement.states = det.states
+        complement.start = det.start
+        complement.label = det.label
         # changes final states for non-final
-        complement.final = self.states - self.final
-        complement.transitions = self.transitions
+        complement.final = det.states - det.final
+        complement.transitions = det.transitions
         complement.deterministic = complement.is_deterministic()
         complement.reversed = None
-
-        if backup:
-            self = deepcopy(backup)
 
         return complement
 
@@ -97,24 +142,28 @@ class SA(Symbolic):
         """
         In place reduces automaton by deleting unreachable and deadend states
         """
+        result = deepcopy(self)
         # first remove deadend transitions
-        self.remove_useless()
+        result = result.remove_useless()
         # then remove unreachable transitions
-        self.remove_unreachable()
+        result = result.remove_unreachable()
         # then reduce remaining transitions
-        self.reduce_transitions()
+        result = result.reduce_transitions()
+
+        return result
 
     def reduce_transitions(self):
         """Simply reduces transitions by uniting them into one when possible"""
         # TODO premysli ci sa neda pouzit uplne rovnako pre transducer, ak ano, vytiahnut do Symbolic
-        new_transitions = deepcopy(self.transitions)
+        result = deepcopy(self)
+        new_transitions = deepcopy(result.transitions)
 
         # first join transitions with the same start and end states into one
 
         # reduce for each state
-        for state in deepcopy(self.transitions):
+        for state in deepcopy(result.transitions):
             # iterate through all labels
-            queue = list(self.transitions[state].keys())
+            queue = list(result.transitions[state].keys())
 
             while len(queue) > 0:
                 # save label and endstate of transition
@@ -152,14 +201,14 @@ class SA(Symbolic):
                         if merged_label not in queue:
                             queue.append(merged_label)
 
-        self.transitions = new_transitions
-        self.remove_empty_transitions()
-        new_transitions = deepcopy(self.transitions)
+        result.transitions = new_transitions
+        result = result.remove_empty_transitions()
+        new_transitions = deepcopy(result.transitions)
 
         # them remove redundant states
 
         # reduce for each state
-        for state in deepcopy(self.transitions):
+        for state in deepcopy(result.transitions):
             # iterate through all labels
             queue = list(new_transitions[state].keys())
 
@@ -206,14 +255,114 @@ class SA(Symbolic):
                                                 del new_transitions[state]
                                 break
 
-        self.transitions = new_transitions
-        self.remove_empty_transitions()
+        result.transitions = new_transitions
+        result = result.remove_empty_transitions()
+
+        return result
+
+    def is_inclusion_antichain(self, other):
+        """
+        Anitchain optimization inclusion checking
+        :param other:
+        :return:
+        """
+        self_compl = self.get_complete()
+        other_compl = other.get_complete()
+        # try to find ontradiction in empty word
+        if self_compl.final.intersection(self_compl.start):
+            if not other_compl.final.intersection(other_compl.start):
+                return False
+
+        other_sim = other_compl.simulations()
+        self_sim = self_compl.simulations()
+
+        processed = set()
+        next = set(itertools.product(self_compl.start, other_compl.minim_antichain(other_compl.start, other_sim)))
+
+        while len(next):
+            # (r,R)
+            pair = next.pop()
+            processed.add(pair)
+            post = self_compl.post_antichain(other_compl, pair)
+            # (p,P)
+            for post_pair in post:
+                post_pair_min = self_compl.minim_antichain(post_pair, other_sim)
+                if post_pair_min[0] in self_compl.final and not post_pair_min[1] in other_compl.final:
+                    return False
+                # (x,X)
+                next_cycle = False
+                for processed_pair in next.union(processed):
+                    if (post_pair[0], processed_pair[0]) in self_sim:
+                        if (processed_pair[1], post_pair[1]) in other_sim:
+                            next_cycle = True
+                            break
+                if next_cycle:
+                    continue
+                for pr in processed.copy():
+                    for ne in next.copy():
+                        if (processed_pair[0], post_pair[0]) in self_sim:
+                            if (post_pair[1], processed_pair[1]) in other_sim:
+                                if pr in processed:
+                                    processed.remove(pr)
+                                if ne in next:
+                                    next.remove(ne)
+                next.add(post_pair)
+
+        return True
+
+    def post_antichain(self, other, pair):
+        result = set()
+
+        if pair[0] in self.transitions and pair[1] in other.transitions:
+            # dont try to put intersection here!!! wont work
+            for a in self.alphabet.union(other.alphabet):
+                for label in self.transitions[pair[0]]:
+                    if label.has_letter(a):
+                        endstates = self.transitions[pair[0]][label]
+                        for label2 in other.transitions[pair[1]]:
+                            if label2.has_letter(a):
+                                endstates2 = other.transitions[pair[1]][label2]
+                                new_pairs = itertools.product(endstates, endstates2)
+                                for new_pair in new_pairs:
+                                    result.add(new_pair)
+        return result
+
+    def minim_antichain(self, states_set, simulations):
+        for pair in simulations:
+            less = pair[0]
+            more = pair[1]
+            if less != more and less in states_set and more in states_set:
+                states_set.remove(less)
+
+        return states_set
+
+    def is_inclusion_simple(self, other):
+        """
+        Inclusion algorithm checking if L(self) ^ !L(other) == {}
+        :param other: second automaton
+        :return: True if self <= other, False otherwise
+        """
+        # algorithm work for complete automata only
+        complete_other = other.determinize().get_complete()
+        complete_self = self.get_complete()
+        # compute !L(other)
+        det_com = complete_other.complement()
+        # compute L(self) ^ !L(other)
+        con = complete_self.intersection(det_com)
+        if con.is_empty():
+            return True
+        return False
 
     def is_inclusion(self, other):
-        self.determinize(True)
-        self.determinized.get_complete()
-        other.determinize(True)
-        other.determinized.get_complete()
+        """
+        Default inclusion checking algorithm by Esparza
+        :param other: second automaton
+        :return: True if self <= other, False otherwise
+        """
+        self.determinize()
+        self.determinized = self.determinized.get_complete()
+        other.determinize()
+        other.determinized = other.determinized.get_complete()
 
         queue = list(itertools.product(self.determinized.start, other.determinized.start))
         checked = []
@@ -263,31 +412,114 @@ class SA(Symbolic):
         """
         Converts automaton to language equal complete automaton
         """
+        complete = deepcopy(self)
         # create one nonterminating state
-        self.states.add("error")
+        complete.states.add("qsink")
         # for transitions from each state
-        for state in deepcopy(self.transitions):
-            # create an error label
-            error_label = None
-            labels = list(self.transitions[state].keys())
-            for label in labels:
+        for state in deepcopy(complete.states):
+            if state in complete.transitions:
+                # create an error label
+                error_label = None
+                labels = list(complete.transitions[state].keys())
+                for label in labels:
+                    if not error_label:
+                        error_label = label.complement()
+                    else:
+                        error_label = error_label.conjunction(label.complement())
+                    # rename all error states to "error"
+                    endstates = complete.transitions[state][label]
+                    for endstate in endstates:
+                        if complete.is_useless(endstate):
+                            complete.transitions[state][label].remove(endstate)
+                            if "qsink" not in complete.transitions[state][label]:
+                                complete.transitions[state][label].append("qsink")
                 if not error_label:
-                    error_label = label.complement()
+                    error_label = complete.label.get_universal()
+                if error_label not in complete.transitions[state]:
+                    complete.transitions[state][error_label] = ["qsink"]
                 else:
-                    error_label = error_label.conjunction(label.complement())
-                # rename all error states to "error"
-                endstates = self.transitions[state][label]
-                for endstate in endstates:
-                    if self.is_useless(endstate):
-                        self.transitions[state][label].remove(endstate)
-                        if "error" not in self.transitions[state][label]:
-                            self.transitions[state][label].append("error")
-            if not error_label:
-                error_label = label.get_universal()
-            if error_label not in self.transitions[state]:
-                self.transitions[state][error_label] = ["error"]
+                    complete.transitions[state][error_label].append("qsink")
+            else:
+                error_label = complete.label.get_universal()
+                complete.transitions[state] = {}
+                complete.transitions[state][error_label] = ["qsink"]
 
-            self.simple_reduce()
+        return complete
+
+    def simulations(self):
+        complete = self.get_complete()
+
+        complete.reverse()
+        rever_trans = complete.reversed.transitions
+
+        card = {}
+
+        for state in complete.states:
+            for a in complete.alphabet:
+                if state in complete.transitions:
+                    for label in complete.transitions[state]:
+                        if (state,a) in card:
+                            if label.has_letter(a):
+                                card[(state, a)] += len(complete.transitions[state][label])
+                        else:
+                            if label.has_letter(a):
+                                card[(state, a)] = len(complete.transitions[state][label])
+                            else:
+                                card[(state, a)] = 0
+                else:
+                    card[(state, a)] = 0
+
+        result = set()
+        c = []
+
+        for final_state in complete.final:
+            for state in complete.states - complete.final:
+                result.add((final_state, state))
+                c.append((final_state, state))
+
+        N = {}
+
+        while len(c):
+            item = c.pop()
+            i = item[0]
+            j = item[1]
+            for a in complete.alphabet:
+                if j in rever_trans:
+                    for label in rever_trans[j]:
+                        if label.has_letter(a):
+                            for k in rever_trans[j][label]:
+                                if a in N:
+                                    if (i, k) in N[a]:
+                                        N[a][(i, k)] += 1
+                                    else:
+                                        N[a][(i, k)] = 1
+                                else:
+                                    N[a] = {}
+                                    N[a][(i, k)] = 1
+                                if (k, a) in card:
+                                    if N[a][(i, k)] == card[(k, a)]:
+                                        if i in rever_trans:
+                                            for label in rever_trans[i]:
+                                                if label.has_letter(a):
+                                                    for l in rever_trans[i][label]:
+                                                        if (l, k) not in result:
+                                                            result.add((l, k))
+                                                            c.append((l, k))
+
+        # get pairs of states that simulate each other
+        simulations = []
+        q = complete.states.copy()
+        while len(q):
+            state = q.pop()
+            for state2 in q:
+                if state != state2:
+                    if (state, state2) not in result and (state2, state) not in result:
+                        simulations.append((state, state2))
+
+        for state in complete.states:
+            simulations.append((state, state))
+
+        return simulations
 
     def to_classic(self):
         from lfa import LFA
@@ -297,6 +529,7 @@ class SA(Symbolic):
         classic.states = self.states
         classic.start = self.start
         classic.final = self.final
+        classic.label = Letter()
 
         for state in self.transitions:
             classic.transitions[state] = {}
@@ -314,31 +547,22 @@ class SA(Symbolic):
 
         return classic
 
-    def determinize(self, preserve=False):
+    def determinize(self):
         """
         Returns an language equivalent deterministic automaton
         """
-        # self should not be changed, result is expected in .determinized
-        if preserve:
-            # determinized version was already stored
-            if self.determinized:
-                return
-            # if automaton is deterministic, store and return
-            if self.deterministic:
-                self.determinized = self
-                return
         # automaton is already deterministic
         if self.deterministic:
-            return
+            self.determinized = deepcopy(self)
+            return self
 
         det = self.get_new()
-        #det.start = self.start.copy()
         det.start = set()
+        det.label = self.label
         det.start.add(",".join(self.start))
 
         det.alphabet = self.alphabet.copy()
 
-        #queue = self.start.copy()
         queue = set()
         queue.add(",".join(self.start))
 
@@ -359,36 +583,24 @@ class SA(Symbolic):
                     if endstate not in queue and endstate not in checked:
                         queue.add(endstate)
 
-        det.simple_reduce()
-        det.remove_commas_from_states()
+        det = det.simple_reduce()
         det.is_deterministic()
 
-        # store result in .determinized
-        if preserve:
-            self.determinized = det
-        # store result in self
-        else:
-            self.alphabet = det.alphabet
-            self.states = det.states
-            self.start = det.start
-            self.final = det.final
-            self.transitions = det.transitions
-            self.automaton_type = det.automaton_type
-            self.deterministic = det.deterministic
-            self.determinized = self
+        self.determinized = det
+
+        return det
 
     def minimize(self):
         """
         Converts automaton to language equal minimal automaton
         """
-        self.determinize()
-        self.get_complete()
-        self.print_automaton()
+        det = self.determinize()
+        complete = det.get_complete()
 
         min_states = set()
-        min_states.add("|".join(sorted(self.final)))
-        min_states.add("|".join(sorted(self.states - self.final)))
-        print(min_states)
+        min_states.add("|".join(sorted(complete.final)))
+        min_states.add("|".join(sorted(complete.states - complete.final)))
+
         while True:
             new_trans = {}
             # to check if queue was changed
@@ -401,9 +613,9 @@ class SA(Symbolic):
 
                 for state in states:
                     new_trans[state_group][state] = {}
-                    if state in self.transitions:
-                        for label in self.transitions[state]:
-                            for endstate in self.transitions[state][label]:
+                    if state in complete.transitions:
+                        for label in complete.transitions[state]:
+                            for endstate in complete.transitions[state][label]:
                                 for minstate in min_states:
                                     if endstate in minstate:
                                         new_trans[state_group][state][label] = [minstate]
@@ -414,7 +626,7 @@ class SA(Symbolic):
                 # collect states which have the same transitions into one set of states
                 for item in new_transitions:
                     new_state_group = []
-                    for old_state in self.states:
+                    for old_state in complete.states:
                         if old_state in new_trans[state_group]:
                             if new_trans[state_group][old_state] == item:
                                 new_state_group.append(old_state)
@@ -426,22 +638,24 @@ class SA(Symbolic):
             else:
                 min_states = next_iteration
 
-        self.states = next_iteration
-        self.transitions = {}
+        complete.states = next_iteration
+        complete.transitions = {}
         new_final = set()
         new_start = set()
         for state_group in min_states:
-            self.transitions[state_group] = list(new_trans[state_group].values())[0]
+            complete.transitions[state_group] = list(new_trans[state_group].values())[0]
             for state_old in state_group.split("|"):
-                if state_old in self.final:
+                if state_old in complete.final:
                     new_final.add(state_group)
-                if state_old in self.start:
+                if state_old in complete.start:
                     new_start.add(state_group)
 
-        self.start = new_start
-        self.final = new_final
+        complete.start = new_start
+        complete.final = new_final
 
-        self.simple_reduce()
+        complete = complete.simple_reduce()
+
+        return complete
 
     def get_deterministic_transitions(self, state_group):
         """Returns deterministi transitions from a given state"""

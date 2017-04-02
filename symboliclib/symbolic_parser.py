@@ -5,6 +5,7 @@ from __future__ import print_function
 from sa import SA
 from lfa import LFA
 from st import ST
+from epsilon import Epsilon
 
 
 def parse(testfile):
@@ -21,6 +22,7 @@ def parse(testfile):
     final = set()
     transitions = {}
     start = set()
+    epsilon_free = True
 
     with open(testfile) as filep:
         for line in filep:
@@ -38,10 +40,15 @@ def parse(testfile):
                     parts = parts[0].split("\"")
                     predicate = parsePredicate(parts[1], automaton_type)
                 else:
-                    symbol = parts[0].split("(")[0].strip()
-                    start_st = parts[0].split("(")[1]
-                    parts = ["", "", start_st]
-                    predicate = parsePredicate(symbol, automaton_type)
+                    if line.strip().startswith("("):
+                        predicate = Epsilon()
+                        epsilon_free = False
+                        parts = ["", "", parts[0]]
+                    else:
+                        symbol = parts[0].split("(")[0].strip()
+                        start_st = parts[0].split("(")[1]
+                        parts = ["", "", start_st]
+                        predicate = parsePredicate(symbol, automaton_type)
 
                 start_state = parts[2].replace("(", "").replace(")", "").strip()
 
@@ -69,13 +76,21 @@ def parse(testfile):
                     automaton_type = line.split("@")[1].strip()
                     if automaton_type == "INFA":
                         from in_notin_parser import parsePredicate
+                        from in_notin import InNotin
+                        label = InNotin()
                     elif automaton_type == "LFA":
                         from letter_parser import parsePredicate
+                        from letter import Letter
+                        label = Letter()
                     elif automaton_type == "INT":
                         from transducer_predicate import parsePredicate
+                        from transducer_predicate import TransPred
+                        label = TransPred()
                 else:
                     automaton_type = "LFA"
                     from letter_parser import parsePredicate
+                    from letter import Letter
+                    label = Letter()
 
             if line.startswith("States "):
                 for element in line.split(" ")[1:]:
@@ -109,13 +124,16 @@ def parse(testfile):
     automaton.transitions = transitions
     automaton.automaton_type = automaton_type
     automaton.is_deterministic()
+    automaton.label = label
+    automaton.is_epsilon_free = epsilon_free
 
     check_result = automaton.check_automaton()
     if check_result != "OK":
         print("ERROR: " + testfile + " : " + check_result)
         exit(-1)
 
-    automaton.simple_reduce()
+    if automaton.is_epsilon_free:
+        automaton.simple_reduce()
 
     return automaton
 

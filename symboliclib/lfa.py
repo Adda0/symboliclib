@@ -21,6 +21,9 @@ class LFA(SA):
         self.determinized = None
         self.reversed = None
         self.automaton_type = "LFA"
+        self.label = None
+        self.is_epsilon_free = None
+        self.epsilon_free = None
 
     @staticmethod
     def get_new():
@@ -91,31 +94,31 @@ class LFA(SA):
                         if endstate not in queue and endstate_str not in intersect.states:
                             queue.append(endstate)
 
-        intersect.simple_reduce()
+        intersect = intersect.simple_reduce()
 
         return intersect
 
     def simulations(self):
-        self.get_complete()
-        self.print_automaton()
+        complete = self.get_complete()
+        complete.print_automaton()
 
-        self.reverse()
-        rever_trans = self.reversed.transitions
+        complete.reverse()
+        rever_trans = complete.reversed.transitions
 
         card = {}
 
-        for state in self.states:
-            for a in self.alphabet:
-                if state in self.transitions and a in self.transitions[state]:
-                    card[(state, a)] = len(self.transitions[state][a])
+        for state in complete.states:
+            for a in complete.alphabet:
+                if state in complete.transitions and a in complete.transitions[state]:
+                    card[(state, a)] = len(complete.transitions[state][a])
                 else:
                     card[(state, a)] = 0
 
         result = set()
         c = []
 
-        for final_state in self.final:
-            for state in self.states - self.final:
+        for final_state in complete.final:
+            for state in complete.states - complete.final:
                 result.add((final_state, state))
                 c.append((final_state, state))
 
@@ -125,7 +128,7 @@ class LFA(SA):
             item = c.pop()
             i = item[0]
             j = item[1]
-            for a in self.alphabet:
+            for a in complete.alphabet:
                 if j in rever_trans and a in rever_trans[j]:
                     for k in rever_trans[j][a]:
                         if a in N:
@@ -144,8 +147,9 @@ class LFA(SA):
                                             result.add((l, k))
                                             c.append((l, k))
 
+        # get pairs of states that simulate each other
         simulations = []
-        q = self.states
+        q = complete.states.copy()
         while len(q):
             state = q.pop()
             for state2 in q:
@@ -153,15 +157,16 @@ class LFA(SA):
                     if (state, state2) not in result and (state2, state) not in result:
                         simulations.append((state, state2))
 
-        print(simulations)
+        for state in complete.states:
+            simulations.append((state, state))
 
-        return result
+        return simulations
 
     def is_inclusion(self, other):
-        self.determinize(True)
-        self.determinized.get_complete()
-        other.determinize(True)
-        other.determinized.get_complete()
+        self.determinize()
+        self.determinized = self.determinized.get_complete()
+        other.determinize()
+        other.determinized = other.determinized.get_complete()
 
         queue = list(itertools.product(self.determinized.start, other.determinized.start))
         checked = []
@@ -193,27 +198,28 @@ class LFA(SA):
         """
         Converts automaton to language equal complete automaton
         """
-        # @TODO bleh. Nejako vytvárať nové lettery odtiaľto.
-        label_prototype = list(self.transitions[list(self.transitions.keys())[0]].keys())[0]
+        complete = deepcopy(self)
         # create one nonterminating state
-        self.states.add("qsink")
+        complete.states.add("qsink")
         # for transitions from each state
-        for state in deepcopy(self.states):
-            if state in self.transitions:
-                labels = list(self.transitions[state].keys())
+        for state in deepcopy(complete.states):
+            if state in complete.transitions:
+                labels = list(complete.transitions[state].keys())
             else:
                 labels = []
-                self.transitions[state] = {}
-            for a in self.alphabet:
+                complete.transitions[state] = {}
+            for a in complete.alphabet:
                 if a not in labels:
-                    new_label = label_prototype.create(a)
-                    self.transitions[state][new_label] = ["qsink"]
+                    new_label = complete.label.create(a)
+                    complete.transitions[state][new_label] = ["qsink"]
 
             for label in labels:
                 # rename all nonterminating states to "qsink"
-                endstates = self.transitions[state][label]
+                endstates = complete.transitions[state][label]
                 for endstate in endstates:
-                    if self.is_useless(endstate):
-                        self.transitions[state][label].remove(endstate)
-                        if "qsink" not in self.transitions[state][label]:
-                            self.transitions[state][label].append("qsink")
+                    if complete.is_useless(endstate):
+                        complete.transitions[state][label].remove(endstate)
+                        if "qsink" not in complete.transitions[state][label]:
+                            complete.transitions[state][label].append("qsink")
+
+        return complete

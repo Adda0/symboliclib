@@ -13,6 +13,7 @@ class Letter(PredicateInterface):
 
     def __init__(self):
         self.symbol = ""
+        self.is_epsilon = False
 
     def __str__(self):
         return self.symbol

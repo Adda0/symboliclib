@@ -23,7 +23,7 @@ class Symbolic(object):
         self.reversed = None
         self.automaton_type = "SA"
         self.has_epsilon = None
-        self.epsilon_Free = None
+        self.epsilon_free = False
 
     def reverse(self):
         """
@@ -86,41 +86,49 @@ class Symbolic(object):
         """
         In place reduces automaton by deleting unreachable and deadend states
         """
+        result = deepcopy(self)
         # first remove deadend transitions
-        self.remove_useless()
+        result = result.remove_useless()
 
         # then remove unreachable transitions
-        self.remove_unreachable()
+        result = result.remove_unreachable()
+
+        return result
 
     def remove_useless(self):
         """
         Removes useless states
         """
-        self.remove_unused_states()
+        result = deepcopy(self)
+        result = result.remove_unused_states()
 
-        for state in self.states:
-            if self.is_useless(state):
-                if state in self.start:
-                    self.start.remove(state)
-                if state in self.transitions:
-                    del self.transitions[state]
+        for state in result.states:
+            if result.is_useless(state):
+                if state in result.start:
+                    result.start.remove(state)
+                if state in result.transitions:
+                    del result.transitions[state]
 
         # then remove states which are not used in transitions
-        self.remove_unused_states()
+        result = result.remove_unused_states()
+
+        return result
 
     def remove_unreachable(self):
         """
         Removes unreachable states
         """
-        self.remove_unused_states()
+        result = deepcopy(self)
+        result = result.remove_unused_states()
 
-        for state in self.states:
-            if not self.is_reachable(state):
-                if state in self.transitions:
-                    del self.transitions[state]
+        for state in result.states:
+            if not result.is_reachable(state):
+                if state in result.transitions:
+                    del result.transitions[state]
 
         # then remove states which are not used in transitions
-        self.remove_unused_states()
+        result = result.remove_unused_states()
+        return result
 
     def is_useless(self, state):
         """
@@ -205,50 +213,26 @@ class Symbolic(object):
                         final_new.add(endstate)
 
         # replace states and final states by new sets
-        self.states = states_new
-        self.final = final_new
+        result = deepcopy(self)
+        result.states = states_new
+        result.final = final_new
+
+        return result
 
     def remove_empty_transitions(self):
         """
         Clears useless transition structures
         """
-        for state in deepcopy(self.transitions):
-            for label in deepcopy(self.transitions[state]):
-                if not self.transitions[state][label]:
-                    del self.transitions[state][label]
-                    if not self.transitions[state]:
-                        del self.transitions[state]
+        result = deepcopy(self)
 
-    def remove_commas_from_states(self):
-        """
-        Removes commas in state names
-        """
-        new_transitions = {}
-        for state in self.transitions:
-            new_state = state.replace(",", "")
-            new_transitions[new_state] = {}
-            for label in self.transitions[state]:
-                new_transitions[new_state][label] = []
-                for endstate in self.transitions[state][label]:
-                    new_endstate = endstate.replace(",", "")
-                    new_transitions[new_state][label].append(new_endstate)
+        for state in deepcopy(result.transitions):
+            for label in deepcopy(result.transitions[state]):
+                if not result.transitions[state][label]:
+                    del result.transitions[state][label]
+                    if not result.transitions[state]:
+                        del result.transitions[state]
 
-        self.transitions = new_transitions
-
-        new_states = set()
-        for state in self.states:
-            new_states.add(state.replace(",", ""))
-        self.states = new_states
-
-        new_states = set()
-        for state in self.start:
-            new_states.add(state.replace(",", ""))
-        self.start = new_states
-
-        new_states = set()
-        for state in self.final:
-            new_states.add(state.replace(",", ""))
-        self.final = new_states
+        return result
 
     def print_automaton(self, filename=None):
         """
@@ -299,12 +283,6 @@ class Symbolic(object):
         intersect.alphabet = self.alphabet.intersection(automaton_2.alphabet)
         intersect.reversed = None
 
-        """start1 = self.start.copy().pop()
-        start2 = automaton_2.start.copy().pop()
-        first = str(start1) + "," + str(start2)
-        intersect.start = set()
-        intersect.start.add(first)
-        queue = [first]"""
         queue = list(itertools.product(self.start, automaton_2.start))
         intersect.start = set()
         for q in queue:
@@ -329,14 +307,14 @@ class Symbolic(object):
                         common = label.conjunction(label2)
                         #print(common)
                         if common and common.is_satisfiable():
-                            endstate = (self.transitions[state1][label][0], automaton_2.transitions[state2][label][0])
+                            endstate = (self.transitions[state1][label][0], automaton_2.transitions[state2][label2][0])
                             endstate_str = "[" + endstate[0] + "_1|" + endstate[1] + "_2]"
                             #endstate = self.transitions[state1][label][0] + "," + automaton_2.transitions[state2][label2][0]
 
-                            if common not in intersect.transitions[combined]:
-                                intersect.transitions[combined][common] = [endstate_str]
+                            if common not in intersect.transitions[combined_str]:
+                                intersect.transitions[combined_str][common] = [endstate_str]
                             else:
-                                intersect.transitions[combined][common].append(endstate_str)
+                                intersect.transitions[combined_str][common].append(endstate_str)
 
                             if endstate not in queue and endstate_str not in intersect.states:
                                 queue.append(endstate)
@@ -409,11 +387,12 @@ class Symbolic(object):
             if state not in self.states:
                 return "State " + state + " not in states."
             for label in self.transitions[state]:
-                if not label.is_satisfiable():
-                    return "Unsatisfiable label " + str(label) + " from state " + state
-                for endstate in self.transitions[state][label]:
-                    if endstate not in self.states:
-                        return "State " + state + " not in states."
+                if not label.is_epsilon:
+                    if not label.is_satisfiable():
+                        return "Unsatisfiable label " + str(label) + " from state " + state
+                    for endstate in self.transitions[state][label]:
+                        if endstate not in self.states:
+                            return "State " + state + " not in states."
         return "OK"
 
     @staticmethod

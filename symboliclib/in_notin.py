@@ -15,6 +15,7 @@ class InNotin(PredicateInterface):
     def __init__(self):
         self.symbols = set()
         self.type = ""
+        self.is_epsilon = False
 
     def __str__(self):
         return self.type + "{" + ",".join(sorted(self.symbols)) + "}"

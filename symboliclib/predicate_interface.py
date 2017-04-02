@@ -10,6 +10,7 @@ class PredicateInterface(object):
     Module defining Predicate Interface
     """
     __metaclass__ = abc.ABCMeta
+    is_epsilon = False
 
     @abc.abstractmethod
     def complement(self):

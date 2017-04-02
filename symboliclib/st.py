@@ -24,6 +24,7 @@ class ST(Symbolic):
         self.automaton_type = "INT"
         self.has_epsilon = None
         self.epsilon_Free = None
+        self.label = None
 
     def is_deterministic(self):
         """
@@ -67,13 +68,6 @@ class ST(Symbolic):
         comp.alphabet = self.alphabet.intersection(other.alphabet)
         comp.reversed = None
 
-        """start1 = self.start.copy().pop()
-        start2 = other.start.copy().pop()
-        first = str(start1) + "," + str(start2)
-        comp.start = set()
-        comp.start.add(first)
-        queue = [first]"""
-
         queue = list(itertools.product(self.start, other.start))
         comp.start = set()
         for q in queue:
@@ -88,6 +82,9 @@ class ST(Symbolic):
             if combined_str not in comp.transitions:
                 comp.transitions[combined_str] = {}
 
+            if combined_str not in comp.states:
+                comp.states.add(combined_str)
+
             if state1 in self.final or state2 in other.final:
                 comp.final.add(combined_str)
 
@@ -98,21 +95,75 @@ class ST(Symbolic):
                         if common and common.is_satisfiable():
                             new_label = label.combine(label2)
                             if new_label and new_label.is_satisfiable():
-                                endstate = (self.transitions[state1][label][0], other.transitions[state2][label][0])
-                                endstate_str = "[" + endstate[0] + "_1|" + endstate[1] + "_2]"
+                                for end in self.transitions[state1][label]:
+                                    for end2 in other.transitions[state2][label2]:
+                                        endstate = (end, end2)
+                                        endstate_str = "[" + endstate[0] + "_1|" + endstate[1] + "_2]"
 
-                                if new_label not in comp.transitions[combined]:
-                                    comp.transitions[combined][new_label] = [endstate_str]
-                                else:
-                                    comp.transitions[combined][new_label].append(endstate_str)
+                                        if new_label not in comp.transitions[combined_str]:
+                                            comp.transitions[combined_str][new_label] = [endstate_str]
+                                        else:
+                                            comp.transitions[combined_str][new_label].append(endstate_str)
 
-                                if endstate not in queue and endstate_str not in comp.states:
-                                    queue.append(endstate)
+                                        if endstate not in queue and endstate_str not in comp.states:
+                                            queue.append(endstate)
 
-        comp.simple_reduce()
-        #comp.remove_commas_from_states()
+        comp = comp.simple_reduce()
 
         return comp
+
+    def run_on_nfa(self, nfa):
+        if not self.alphabet.intersection(nfa.alphabet):
+            return False
+
+        new_nfa = nfa.get_new()
+        new_nfa.alphabet = self.alphabet
+        new_nfa.reversed = None
+
+        queue = list(itertools.product(self.start, nfa.start))
+        new_nfa.start = set()
+        for q in queue:
+            new_nfa.start.add("[" + q[0] + "_1|" + q[1] + "_2]")
+
+        while len(queue) > 0:
+            combined = queue.pop()
+            state1 = combined[0]
+            state2 = combined[1]
+            combined_str = "[" + state1 + "_1|" + state2 + "_2]"
+
+            if combined_str not in new_nfa.transitions:
+                new_nfa.transitions[combined_str] = {}
+
+            if combined_str not in new_nfa.states:
+                new_nfa.states.add(combined_str)
+
+            if state1 in self.final and state2 in nfa.final:
+                new_nfa.final.add(combined_str)
+            if state1 in self.transitions and state2 in nfa.transitions:
+                for label in self.transitions[state1]:
+                    for label2 in nfa.transitions[state2]:
+                        common = label.input.conjunction(label2)
+                        if common and common.is_satisfiable():
+                            new_label = label.output
+                            if label.identity:
+                                new_label = label.output.conjunction(label2)
+                            if new_label and new_label.is_satisfiable():
+                                for end in self.transitions[state1][label]:
+                                    for end2 in nfa.transitions[state2][label2]:
+                                        endstate = (end, end2)
+                                        endstate_str = "[" + endstate[0] + "_1|" + endstate[1] + "_2]"
+
+                                        if new_label not in new_nfa.transitions[combined_str]:
+                                            new_nfa.transitions[combined_str][new_label] = [endstate_str]
+                                        else:
+                                            new_nfa.transitions[combined_str][new_label].append(endstate_str)
+
+                                        if endstate not in queue and endstate_str not in new_nfa.states:
+                                            queue.append(endstate)
+
+        new_nfa = new_nfa.simple_reduce()
+
+        return new_nfa
 
     def check_translation(self, word, word2, state=None):
         # @TODO pre viac zaciatocnych stavov
@@ -125,7 +176,7 @@ class ST(Symbolic):
         if not state:
             state = self.start.copy().pop()
 
-        if not state in self.transitions:
+        if state not in self.transitions:
             return False
         for label in self.transitions[state]:
             if label.translates(word[0], word2[0]):
