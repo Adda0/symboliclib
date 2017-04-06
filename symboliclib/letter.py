@@ -97,3 +97,9 @@ class Letter(PredicateInterface):
         result.symbol = symbol
 
         return result
+
+    @abc.abstractmethod
+    def has_letter(self, symbol):
+        """Checks whether the given predicate is satisfiable
+        Returns true or false"""
+        return self.symbol == symbol

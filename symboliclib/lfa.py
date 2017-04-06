@@ -100,7 +100,6 @@ class LFA(SA):
 
     def simulations(self):
         complete = self.get_complete()
-        complete.print_automaton()
 
         complete.reverse()
         rever_trans = complete.reversed.transitions
