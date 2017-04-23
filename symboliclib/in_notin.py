@@ -9,8 +9,12 @@ from predicate_interface import PredicateInterface
 class InNotin(PredicateInterface):
     """
     in and not_in predicates class
+
+    Attributes:
+        symbols     set of symbols
+        type        type of predicate - in or not_in
+        is_epsilon  flag whether the predicate represents epsilon
     """
-    __metaclass__ = abc.ABCMeta
 
     def __init__(self):
         self.symbols = set()
@@ -30,8 +34,11 @@ class InNotin(PredicateInterface):
         return hash((self.type, str(sorted(self.symbols))))
 
     @abc.abstractmethod
-    def complement(self):
-        """Return complement of given predicate"""
+    def negation(self):
+        """
+        Predicate negation
+        :return: negation of given predicate
+        """
         result = InNotin()
         result.symbols = set(sorted(self.symbols.copy()))
         if self.type == "not_in":
@@ -42,8 +49,11 @@ class InNotin(PredicateInterface):
 
     @abc.abstractmethod
     def conjunction(self, predicate):
-        """Return conjunction of given predicates
-        Return disjunction of given predicates"""
+        """
+        Predicate conjunction
+        :param predicate: second predicate
+        :return: conjunction of two predicates
+        """
         result = InNotin()
 
         if self.type == "not_in":
@@ -66,7 +76,11 @@ class InNotin(PredicateInterface):
 
     @abc.abstractmethod
     def disjunction(self, predicate):
-        """Return disjunction of given predicates"""
+        """
+        Predicate disjunction
+        :param predicate: second predicate
+        :return: disjunction of two predicates
+        """
         result = InNotin()
 
         if self.type == "not_in":
@@ -89,8 +103,11 @@ class InNotin(PredicateInterface):
 
     @abc.abstractmethod
     def is_equal(self, predicate):
-        """Checks whether the given predicates are equal
-        Returns true or false"""
+        """
+        Checks whether the given predicates are equal
+        :param predicate: second predicate
+        :return: bool
+        """
         if self.type == predicate.type and self.symbols == predicate.symbols:
             return True
         else:
@@ -98,8 +115,11 @@ class InNotin(PredicateInterface):
 
     @abc.abstractmethod
     def is_subset(self, predicate):
-        """is_subset(predicate) Checks whether self is subset of predicate
-        Returns true or false"""
+        """
+        Checks whether the given predicate represent a subset of the second one
+        :param predicate: second predicate
+        :return: bool
+        """
         if self.type == "in" and predicate.type == "in" and self.symbols <= predicate.symbols:
             return True
         if self.type == "not_in" and predicate.type == "not_in" and self.symbols >= predicate.symbols:
@@ -109,8 +129,10 @@ class InNotin(PredicateInterface):
 
     @abc.abstractmethod
     def is_satisfiable(self):
-        """Checks whether the given predicate is satisfiable
-        Returns true or false"""
+        """
+        Checks whether the given predicate is satisfiable
+        :return: bool
+        """
         if self.type == "in" and len(self.symbols) == 0:
             return False
 
@@ -118,8 +140,10 @@ class InNotin(PredicateInterface):
 
     @abc.abstractmethod
     def get_universal(self):
-        """Checks whether the given predicate is satisfiable
-        Returns true or false"""
+        """
+        Creates a predicate representing the whole alphabet
+        :return: predicate object
+        """
         result = InNotin()
 
         result.type = "not_in"
@@ -127,7 +151,13 @@ class InNotin(PredicateInterface):
 
         return result
 
+    @abc.abstractmethod
     def has_letter(self, letter):
+        """
+        Checks whether the given symbol belongs to the predicate
+        :param letter: checked symbol
+        :return: bool
+        """
         if self.type == "in":
             if letter in self.symbols:
                 return True

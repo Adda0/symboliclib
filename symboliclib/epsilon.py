@@ -7,6 +7,9 @@ import abc
 class Epsilon:
     """
     Class representing epsilon
+
+    Attributes:
+        is_epsilon       true
     """
     __metaclass__ = abc.ABCMeta
 

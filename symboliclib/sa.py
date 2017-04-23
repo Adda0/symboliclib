@@ -1,5 +1,7 @@
 """
 SA - Symbolic Automaton class
+
+represents symbolic finite automaton
 """
 from __future__ import print_function
 
@@ -10,7 +12,27 @@ import itertools
 
 class SA(Symbolic):
     """
-    Finite automaton class
+    Symbolic finite automaton class
+
+    Attributes:
+        -- classic automaton attributes:
+        alphabet        set of symbols
+        states          set of states
+        start           set of initial states
+        final           set of final states
+        transitions     dictionary of transitions
+        automaton_type  type of automaton - here INFA (In/Not_in Finite Automaton)
+
+        -- information about automaton:
+        deterministic   flag whether automaton is deterministic
+        is_epsilon_free flag whether automaton is epsilon free
+        label           class instance of label used in automaton
+
+        -- attributes used for optimisation:
+        reversed        reversed version of automaton
+        determinized    determinized version of automaton
+        epsilon_free    epsilon free version of automaton
+
     """
     def __init__(self):
         self.alphabet = set()
@@ -30,9 +52,18 @@ class SA(Symbolic):
 
     @staticmethod
     def get_new():
+        """
+        Creates and returns new empty object of class
+        :return: empty object SA
+        """
         return SA()
 
     def remove_epsilon(self):
+        """
+        Creates epsilon_free version of the automaton
+        stores result in attribute epsilon_free
+        :return: epsilon_free automaton
+        """
         if self.epsilon_free is not None:
             return self.epsilon_free
         if self.is_epsilon_free:
@@ -68,6 +99,12 @@ class SA(Symbolic):
         return eps_free
 
     def get_epsilon_closure(self, state, checked=set()):
+        """
+        Finds epsilon closure of a state
+        :param state: state to check
+        :param checked: already checked states
+        :return: epsilon closure of state
+        """
         result = set()
 
         if state in self.transitions:
@@ -140,7 +177,8 @@ class SA(Symbolic):
 
     def simple_reduce(self):
         """
-        In place reduces automaton by deleting unreachable and deadend states
+        Reduces automaton by removing unreachable and useless states
+        :return: reduced automaton
         """
         result = deepcopy(self)
         # first remove deadend transitions
@@ -153,8 +191,10 @@ class SA(Symbolic):
         return result
 
     def reduce_transitions(self):
-        """Simply reduces transitions by uniting them into one when possible"""
-        # TODO premysli ci sa neda pouzit uplne rovnako pre transducer, ak ano, vytiahnut do Symbolic
+        """
+        Reduces number of transitions by uniting them into one when possible
+        :return: reduced automaton
+        """
         result = deepcopy(self)
         new_transitions = deepcopy(result.transitions)
 
@@ -260,11 +300,13 @@ class SA(Symbolic):
 
         return result
 
-    def is_inclusion_antichain(self, other):
+    def is_included_antichain(self, other):
         """
-        Anitchain optimization inclusion checking
-        :param other:
-        :return:
+        Checks whether automaton is included in the other one:
+        self <= other ?
+        Algorithm uses antichains
+        :param other: other automaton
+        :return: bool
         """
         self_compl = self.get_complete()
         other_compl = other.get_complete()
@@ -273,8 +315,8 @@ class SA(Symbolic):
             if not other_compl.final.intersection(other_compl.start):
                 return False
 
-        other_sim = other_compl.simulations()
-        self_sim = self_compl.simulations()
+        other_sim = other_compl.simulations_preorder()
+        self_sim = self_compl.simulations_preorder()
 
         processed = set()
         next = set(itertools.product(self_compl.start, other_compl.minim_antichain(other_compl.start, other_sim)))
@@ -311,6 +353,12 @@ class SA(Symbolic):
         return True
 
     def post_antichain(self, other, pair):
+        """
+        Computes post relation for antichain algorithm
+        :param other: other automaton
+        :param pair: pair of states (p,q), p is a state from self, q is a state from other
+        :return: post relation
+        """
         result = set()
 
         if pair[0] in self.transitions and pair[1] in other.transitions:
@@ -328,19 +376,28 @@ class SA(Symbolic):
         return result
 
     def minim_antichain(self, states_set, simulations):
-        for pair in simulations:
+        """
+        Removes simulating states from a set of states for antichains algorithm
+        :param states_set: set of states to reduce
+        :param simulations: simulation relation over automata states
+        :return: reduced states set
+        """
+        return states_set
+        """for pair in simulations:
             less = pair[0]
             more = pair[1]
             if less != more and less in states_set and more in states_set:
                 states_set.remove(less)
 
-        return states_set
+        return states_set"""
 
-    def is_inclusion_simple(self, other):
+    def is_included_simple(self, other):
         """
-        Inclusion algorithm checking if L(self) ^ !L(other) == {}
-        :param other: second automaton
-        :return: True if self <= other, False otherwise
+        Checks whether automaton is included in the other one:
+        self <= other ?
+        Algorithm checks whether L(self) ^ !L(other) == {}
+        :param other: other automaton
+        :return: bool
         """
         # algorithm work for complete automata only
         complete_other = other.determinize().get_complete()
@@ -353,11 +410,13 @@ class SA(Symbolic):
             return True
         return False
 
-    def is_inclusion(self, other):
+    def is_included(self, other):
         """
-        Default inclusion checking algorithm by Esparza
-        :param other: second automaton
-        :return: True if self <= other, False otherwise
+        Checks whether automaton is included in the other one:
+        self <= other ?
+        Algorithm checks whether L(self) ^ !L(other) == {}
+        :param other: other automaton
+        :return: bool
         """
         self.determinize()
         self.determinized = self.determinized.get_complete()
@@ -395,22 +454,32 @@ class SA(Symbolic):
         return True
 
     def is_equivalent(self, other):
-        if self.is_inclusion(other) and other.is_inclusion(self):
+        """
+        Checks whether automaton is equivalent to the other one
+        :param other: other automaton
+        :return: reduced automaton
+        """
+        if self.is_included(other) and other.is_included(self):
             return True
 
         return False
 
     def is_universal(self):
-        self.minimize()
-        for state in self.states:
-            if state not in self.final:
+        """
+        Checks whether automaton is universal
+        :return: bool
+        """
+        min = self.minimize()
+        for state in min.states:
+            if state not in min.final:
                 return False
 
         return True
 
     def get_complete(self):
         """
-        Converts automaton to language equal complete automaton
+        Converts automaton into language equivalent complete automaton
+        :return: complete automaton
         """
         complete = deepcopy(self)
         # create one nonterminating state
@@ -423,9 +492,9 @@ class SA(Symbolic):
                 labels = list(complete.transitions[state].keys())
                 for label in labels:
                     if not error_label:
-                        error_label = label.complement()
+                        error_label = label.negation()
                     else:
-                        error_label = error_label.conjunction(label.complement())
+                        error_label = error_label.conjunction(label.negation())
                     # rename all error states to "error"
                     endstates = complete.transitions[state][label]
                     for endstate in endstates:
@@ -446,7 +515,11 @@ class SA(Symbolic):
 
         return complete
 
-    def simulations(self):
+    def simulations_preorder(self):
+        """
+        Computes simulation_preorder relation
+        :return: pairs of states that simulate each other
+        """
         complete = self.get_complete()
 
         complete.reverse()
@@ -521,7 +594,11 @@ class SA(Symbolic):
 
         return simulations
 
-    def to_classic(self):
+    def to_lfa(self):
+        """
+        Converts symbolic automaton into a classic finite automaton
+        :return: LFA automaton
+        """
         from lfa import LFA
         from letter import Letter
         classic = LFA.get_new()
@@ -544,17 +621,23 @@ class SA(Symbolic):
                                     classic.transitions[state][new].append(endstate)
                         else:
                             classic.transitions[state][new] = self.transitions[state][label]
+                            classic.transitions[state][new] = self.transitions[state][label]
 
         return classic
 
     def determinize(self):
         """
-        Returns an language equivalent deterministic automaton
+        Converts automaton into a deterministic one
+        stores the result in attribute determinized
+        :return: determinised automaton
         """
         # automaton is already deterministic
         if self.deterministic:
             self.determinized = deepcopy(self)
             return self
+
+        if self.determinized is not None:
+            return deepcopy(self.determinized)
 
         det = self.get_new()
         det.start = set()
@@ -592,7 +675,8 @@ class SA(Symbolic):
 
     def minimize(self):
         """
-        Converts automaton to language equal minimal automaton
+        Converts automaton into a minimal one
+        :return: minimal automaton
         """
         det = self.determinize()
         complete = det.get_complete()
@@ -658,7 +742,11 @@ class SA(Symbolic):
         return complete
 
     def get_deterministic_transitions(self, state_group):
-        """Returns deterministi transitions from a given state"""
+        """
+        Returns deterministic transitions from a given state
+        :param state_group: comma separated set of states
+        :return: deterministic transitions
+        """
         new_transitions = {}
 
         for state in state_group.split(","):
@@ -674,13 +762,13 @@ class SA(Symbolic):
                     add = labels[0]
                     end = set(self.transitions[state][labels[0]])
                 else:
-                    add = labels[0].complement()
+                    add = labels[0].negation()
                 for j in range(1, len(labels)):
                     if j in com:
                         add = add.conjunction(labels[j])
                         end = end.union(set(self.transitions[state][labels[j]]))
                     else:
-                        add = add.conjunction(labels[j].complement())
+                        add = add.conjunction(labels[j].negation())
                 # add to created transitions
                 if add.is_satisfiable() and len(end):
                     if add in new_transitions:
@@ -693,7 +781,13 @@ class SA(Symbolic):
         return new_transitions
 
     def merge_transition(self, new_transitions, add, end):
-        """Merges a new transition to existing transitions without ruining determinism"""
+        """
+        Merges a new transition to existing transitions without ruining determinism
+        :param new_transitions: existing transitions from start state of merged transition
+        :param add: transition label to add
+        :param end: transitions end state to add
+        :return: transitions from start state of merged transition
+        """
         if not add.is_satisfiable():
             return new_transitions
         added = False
@@ -716,7 +810,7 @@ class SA(Symbolic):
                 existing_states = set(new_transitions[original_label][0].split(","))
                 merged_states = ",".join(sorted(existing_states.union(end)))
                 new_transitions[add] = [merged_states]
-                rest = original_label.conjunction(add.complement())
+                rest = original_label.conjunction(add.negation())
                 del new_transitions[original_label]
                 if rest and rest.is_satisfiable():
                     new_transitions = self.merge_transition(new_transitions, rest, existing_states)
@@ -727,7 +821,7 @@ class SA(Symbolic):
                 existing_states = set(new_transitions[original_label][0].split(","))
                 merged_states = ",".join(sorted(existing_states.union(end)))
                 new_transitions[original_label] = [merged_states]
-                rest = add.conjunction(original_label.complement())
+                rest = add.conjunction(original_label.negation())
                 if rest and rest.is_satisfiable():
                     new_transitions = self.merge_transition(new_transitions, rest, end)
                 break
@@ -740,11 +834,11 @@ class SA(Symbolic):
 
                 new_transitions = self.merge_transition(new_transitions, conjunction, conend)
 
-                left_label = original_label.conjunction(add.complement())
+                left_label = original_label.conjunction(add.negation())
                 if left_label and left_label.is_satisfiable():
                     new_transitions = self.merge_transition(new_transitions, left_label, original_end)
 
-                add_left = add.conjunction(conjunction.complement())
+                add_left = add.conjunction(conjunction.negation())
                 if add_left and add_left.is_satisfiable():
                     new_transitions = self.merge_transition(new_transitions, add_left, end)
 
@@ -755,8 +849,13 @@ class SA(Symbolic):
 
         return new_transitions
 
+
 def list_powerset(length):
-    """Returns powerset of a list of given length"""
+    """
+    Returns powerset of a list of given length
+    :param length: length
+    :return: list powerset
+    """
     lst = []
     for i in range(0, length):
         lst.append(i)

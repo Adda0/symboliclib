@@ -10,7 +10,12 @@ from predicate_interface import PredicateInterface
 class TransPred(PredicateInterface):
     """
     Transducer predicate class
-    has input and output predicate and defines operations with them
+    represents a transducer label with input and output predicates
+
+    Attributes:
+        input       input predicate
+        output      output predicate
+        identity    flag if the label represents identity
     """
     def __init__(self):
         self.input = None
@@ -37,7 +42,10 @@ class TransPred(PredicateInterface):
 
     @abc.abstractmethod
     def complement(self):
-        """Return complement of given predicate"""
+        """
+        Predicate negation
+        :return: negation of given predicate
+        """
         result = TransPred()
         result.identity = self.identity
         result.input = result.input.complement()
@@ -46,8 +54,11 @@ class TransPred(PredicateInterface):
 
     @abc.abstractmethod
     def conjunction(self, predicate):
-        """Return conjunction of given predicates
-        Return disjunction of given predicates"""
+        """
+        Predicate conjunction
+        :param predicate: second predicate
+        :return: conjunction of two predicates
+        """
         result = TransPred()
         if self.identity or predicate.identity:
             result.identity = True
@@ -68,7 +79,11 @@ class TransPred(PredicateInterface):
 
     @abc.abstractmethod
     def disjunction(self, predicate):
-        """Return disjunction of given predicates"""
+        """
+        Predicate disjunction
+        :param predicate: second predicate
+        :return: disjunction of two predicates
+        """
         result = TransPred()
 
         if self.identity or predicate.identity:
@@ -90,8 +105,11 @@ class TransPred(PredicateInterface):
 
     @abc.abstractmethod
     def is_equal(self, predicate):
-        """Checks whether the given predicates are equal
-        Returns true or false"""
+        """
+        Checks whether the given predicates are equal
+        :param predicate: second predicate
+        :return: bool
+        """
         if self.identity != predicate.identity:
             # if every predicate has exactly one symbol, they can be equal even if their .identity is not the same
             if len(self.input) != 1 or len(self.output) != 1 or len(predicate.input) != 1 or len(predicate.output) != 1:
@@ -105,8 +123,11 @@ class TransPred(PredicateInterface):
 
     @abc.abstractmethod
     def is_subset(self, predicate):
-        """is_subset(predicate) Checks whether self is subset of predicate
-        Returns true or false"""
+        """
+        Checks whether the given predicate represent a subset of the second one
+        :param predicate: second predicate
+        :return: bool
+        """
         if self.identity != predicate.identity:
             if predicate.identity and not self.is_equal(predicate):
                 return False
@@ -119,8 +140,10 @@ class TransPred(PredicateInterface):
 
     @abc.abstractmethod
     def is_satisfiable(self):
-        """Checks whether the given predicate is satisfiable
-        Returns true or false"""
+        """
+        Checks whether the given predicate is satisfiable
+        :return: bool
+        """
         if not self.input.is_satisfiable():
             return False
         if not self.output.is_satisfiable():
@@ -129,8 +152,11 @@ class TransPred(PredicateInterface):
         return True
 
     def combine(self, other):
-        """ For composition
-        Returns composed label"""
+        """
+        Creates composition of two given labels
+        :param other: the second predicate
+        :return: composed predicate
+        """
         result = TransPred()
         if self.identity or result.identity:
             result.identity = True
@@ -144,8 +170,12 @@ class TransPred(PredicateInterface):
         return result
 
     def translates(self, a, b):
-        """Checks whether the given predicate is satisfiable
-        Returns true or false"""
+        """
+        Checks whether predicates translates symbol a to symbol b
+        :param a: the input symbol
+        :param b: the output symbol
+        :return: bool
+        """
         if self.identity:
             if self.input.has_letter(a) and a == b:
                 return True
@@ -155,8 +185,12 @@ class TransPred(PredicateInterface):
         return False
 
     def translate(self, a, alphabet):
-        """Checks whether the given predicate is satisfiable
-        Returns true or false"""
+        """
+        Translates symbol a to another symbol
+        :param a: the input symbol
+        :param alphabet: alphabet of the automaton
+        :return: translation fo the symbol
+        """
         if self.input.has_letter(a):
             if self.identity:
                 return a
@@ -171,9 +205,9 @@ class TransPred(PredicateInterface):
 def parsePredicate(pred, automaton_type):
     """
     Parses given predicate
-    :param pred:
-    :param automaton_type:
-    :return:
+    :param pred: predicate string
+    :param automaton_type: type of the automaton
+    :return: predicate object
     """
     result = TransPred()
     if pred[0] == "@":

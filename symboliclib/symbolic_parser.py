@@ -1,5 +1,5 @@
 """
-Super cool parser module
+Automata and transducer parser
 """
 from __future__ import print_function
 from sa import SA
@@ -10,7 +10,9 @@ from epsilon import Epsilon
 
 def parse(testfile):
     """
-    Parse given automaton in Timbuk format and return FA instance.
+    Parses given automaton in Timbuk format
+    :param testfile: filename
+    :return: automaton object
     """
     if not testfile:
         print("No filename was given.")
@@ -139,6 +141,11 @@ def parse(testfile):
 
 
 def type_to_class(type_name):
+    """
+    Converts automaton type name to automata object
+    :param type_name: automaton type name
+    :return: automaton object
+    """
     return {
         "INFA": SA(),
         "LFA": LFA(),

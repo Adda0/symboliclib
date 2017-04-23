@@ -1,5 +1,7 @@
 """
 LFA - Letter Finite Automaton class
+
+represents classic finite automaton
 """
 from __future__ import print_function
 from sa import SA
@@ -9,7 +11,27 @@ import itertools
 
 class LFA(SA):
     """
-    Finite automaton class
+    Classic finite automaton class
+
+    Attributes:
+        -- classic automaton attributes:
+        alphabet        set of symbols
+        states          set of states
+        start           set of initial states
+        final           set of final states
+        transitions     dictionary of transitions
+        automaton_type  type of automaton - here LFA (Letter Finite Automaton)
+
+        -- information about automaton:
+        deterministic   flag whether automaton is deterministic
+        is_epsilon_free flag whether automaton is epsilon free
+        label           class instance of label used in automaton
+
+        -- attributes used for optimisation:
+        reversed        reversed version of automaton
+        determinized    determinized version of automaton
+        epsilon_free    epsilon free version of automaton
+
     """
     def __init__(self):
         self.alphabet = set()
@@ -27,12 +49,17 @@ class LFA(SA):
 
     @staticmethod
     def get_new():
+        """
+        Creates and returns new empty object of class
+        :return: empty object LFA
+        """
         return LFA()
 
     def is_deterministic(self):
-        """Checks if the automaton is deterministic
+        """
+        Checks if the automaton is deterministic
         sets the deterministic attribute
-        Returns True or False
+        :return: bool
         """
         if self.deterministic is not None:
             # the deterministic attribute is already set, no need to check again
@@ -56,8 +83,10 @@ class LFA(SA):
         return True
 
     def intersection(self, a2):
-        """Intersection
-        Returns intersection
+        """
+        Performs intersection of two automata
+        :param a2: the second automaton
+        :return: automaton created by intersection
         """
         intersect = self.get_new()
         intersect.alphabet = self.alphabet.intersection(a2.alphabet)
@@ -98,7 +127,11 @@ class LFA(SA):
 
         return intersect
 
-    def simulations(self):
+    def simulations_preorder(self):
+        """
+        Computes simulation_preorder relation
+        :return: pairs of states that simulate each other
+        """
         complete = self.get_complete()
 
         complete.reverse()
@@ -161,7 +194,13 @@ class LFA(SA):
 
         return simulations
 
-    def is_inclusion(self, other):
+    def is_included(self, other):
+        """
+        Checks whether automaton is included in the other one:
+        self <= other ?
+        :param other: other automaton
+        :return: bool
+        """
         self.determinize()
         self.determinized = self.determinized.get_complete()
         other.determinize()
@@ -195,7 +234,8 @@ class LFA(SA):
 
     def get_complete(self):
         """
-        Converts automaton to language equal complete automaton
+        Converts automaton into language equivalent complete automaton
+        :return: complete automaton
         """
         complete = deepcopy(self)
         # create one nonterminating state

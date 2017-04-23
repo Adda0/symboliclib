@@ -1,6 +1,7 @@
 """
-Symbolic automaton class
-all methods common for FA and FT
+Symbolic class
+
+used for implementation od method that are the same for automata and transducers
 """
 from __future__ import print_function
 import itertools
@@ -9,7 +10,25 @@ from copy import deepcopy
 
 class Symbolic(object):
     """
-    Finite automaton class
+    Symbolic class
+
+    Attributes:
+        -- classic automaton attributes:
+        alphabet        set of symbols
+        states          set of states
+        start           set of initial states
+        final           set of final states
+        transitions     dictionary of transitions
+        automaton_type  type of automaton - here SA (Symbolic Automaton)
+
+        -- information about automaton:
+        deterministic   flag whether automaton is deterministic
+        is_epsilon_free flag whether automaton is epsilon free
+
+        -- attributes used for optimisation:
+        reversed        reversed version of automaton
+        epsilon_free    epsilon free version of automaton
+
     """
     def __init__(self):
         self.alphabet = set()
@@ -22,13 +41,29 @@ class Symbolic(object):
         # reversed variant of the automaton
         self.reversed = None
         self.automaton_type = "SA"
-        self.has_epsilon = None
+        self.is_epsilon_free = None
         self.epsilon_free = False
+
+    def get_math_format(self):
+        """
+        Returns automaton in dictionary as in the definition:
+        A = (alphabet, states, initial_states, final_states, transitions)
+        :return: dictionary
+        """
+        math_format = {"alphabet": self.alphabet,
+                       "states": self.states,
+                       "initial_states": self.start,
+                       "final_states": self.final,
+                       "transitions": self.transitions}
+
+        return math_format
 
     def reverse(self):
         """
-        Reverses the automaton transitions
+        Reverses the automaton transitions:
+        a(p)->q becomes a(q)->p
         stores the resulting automaton in attribute reversed
+        :return: reversed version of the automaton
         """
         if self.reversed:
             # automaton was reversed before
@@ -57,6 +92,8 @@ class Symbolic(object):
                         # save new transition into existing list
                         self.reversed.transitions[trans_end][trans_label].append(trans_group)
 
+        return deepcopy(self.reversed)
+
     def is_empty(self):
         """
         Checks whether language of the automaton is empty
@@ -84,7 +121,8 @@ class Symbolic(object):
 
     def simple_reduce(self):
         """
-        In place reduces automaton by deleting unreachable and deadend states
+        Reduces automaton by removing unreachable and useless states
+        :return: reduced automaton
         """
         result = deepcopy(self)
         # first remove deadend transitions
@@ -97,7 +135,8 @@ class Symbolic(object):
 
     def remove_useless(self):
         """
-        Removes useless states
+        Reduces automaton by removing useless states
+        :return: reduced automaton
         """
         result = deepcopy(self)
         result = result.remove_unused_states()
@@ -116,7 +155,8 @@ class Symbolic(object):
 
     def remove_unreachable(self):
         """
-        Removes unreachable states
+        Reduces automaton by removing unreachable states
+        :return: reduced automaton
         """
         result = deepcopy(self)
         result = result.remove_unused_states()
@@ -132,7 +172,7 @@ class Symbolic(object):
 
     def is_useless(self, state):
         """
-        Checks whether a state is deadend - doesnt lead to end state
+        Checks whether a state is useless - doesnt lead to end state
         :return: bool
         """
         #if state in self.start:
@@ -187,7 +227,8 @@ class Symbolic(object):
 
     def remove_unused_states(self):
         """
-        Removes in place useless states - the ones that are not used in any transition
+        Reduces automaton by removing states that are not used in any transition
+        :return: reduced automaton
         """
         # construct new states anf final states set according to transitions
         states_new = set()
@@ -221,7 +262,8 @@ class Symbolic(object):
 
     def remove_empty_transitions(self):
         """
-        Clears useless transition structures
+        Reduces automaton by removing transitions leading nowhere
+        :return: reduced automaton
         """
         result = deepcopy(self)
 
@@ -276,8 +318,10 @@ class Symbolic(object):
             print(export_str)
 
     def intersection(self, automaton_2):
-        """Intersection
-        Returns intersection
+        """
+        Performs intersection of two automata
+        :param automaton_2: the second automaton
+        :return: automaton created by intersection
         """
         intersect = self.get_new()
         intersect.alphabet = self.alphabet.intersection(automaton_2.alphabet)
@@ -327,8 +371,10 @@ class Symbolic(object):
         return intersect
 
     def union(self, other):
-        """Union
-        Returns union
+        """
+        Performss union of two automata
+        :param other: the second automaton
+        :return: automaton created by union
         """
         uni = self.get_new()
         uni.alphabet = self.alphabet.union(other.alphabet)
@@ -373,6 +419,17 @@ class Symbolic(object):
         return uni
 
     def check_automaton(self):
+        """
+        Checks whether automaton is valid:
+            - has initial states
+            - has states
+            - has nonempty alphabet
+            - final states are subset of all states
+            - initial states are subset of all states
+            - all states used in transitions are in automaton states
+            - all transition labels are satisfiable
+        :return: OK if automaton is valid, Error message if automaton is invalid
+        """
         if not len(self.start):
             return "No initial states given."
         if not len(self.states):

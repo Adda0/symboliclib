@@ -1,5 +1,7 @@
 """
 ST - Symbolic Transducer class
+
+represents symbolic transducer
 """
 from __future__ import print_function
 
@@ -9,7 +11,26 @@ import itertools
 
 class ST(Symbolic):
     """
-    Finite automaton class
+    Symbolic transducer class
+
+    Attributes:
+        -- classic transducer attributes:
+        alphabet        set of symbols
+        states          set of states
+        start           set of initial states
+        final           set of final states
+        transitions     dictionary of transitions
+        automaton_type  type of transducer - here INT (In/Not_in Transducer)
+
+        -- information about transducer:
+        deterministic   flag whether transducer is deterministic
+        is_epsilon_free flag whether transducer is epsilon free
+        label           class instance of label used in transducer
+
+        -- attributes used for optimisation:
+        reversed        reversed version of transducer
+        epsilon_free    epsilon free version of transducer
+
     """
     def __init__(self):
         self.alphabet = set()
@@ -22,8 +43,8 @@ class ST(Symbolic):
         # reversed variant of the automaton
         self.reversed = None
         self.automaton_type = "INT"
-        self.has_epsilon = None
-        self.epsilon_Free = None
+        self.is_epsilon_free = None
+        self.epsilon_free = None
         self.label = None
 
     def is_deterministic(self):
@@ -61,6 +82,11 @@ class ST(Symbolic):
         return True
 
     def composition(self, other):
+        """
+        Performs composition of two transducers
+        :param other: the second automaton
+        :return: transducer created by composition
+        """
         if self.automaton_type != other.automaton_type:
             return False
 
@@ -113,6 +139,11 @@ class ST(Symbolic):
         return comp
 
     def run_on_nfa(self, nfa):
+        """
+        Applies transducer on given automaton
+        :param nfa: finite automaton
+        :return: finite automaton created by application of trnasucer
+        """
         if not self.alphabet.intersection(nfa.alphabet):
             return False
 
@@ -166,7 +197,14 @@ class ST(Symbolic):
         return new_nfa
 
     def check_translation(self, word, word2, state=None):
-        # @TODO pre viac zaciatocnych stavov
+        """
+        Checks if word translates to word2 in the transducer
+        !! does not work with multiple initial states
+        :param word: the input word
+        :param word2: the output word
+        :param state: initial state of checking
+        :return: bool
+        """
         if len(word) == 0 and len(word2) == 0 and state in self.final:
             return True
 
@@ -187,7 +225,13 @@ class ST(Symbolic):
         return False
 
     def translate_word(self, word, state=None):
-        # @TODO pre viac zaciatocnych stavov
+        """
+        Generates random translation of given word if possible
+        !! does not work with multiple initial states
+        :param word: the input word
+        :param state: initial state of translation
+        :return: output word or False if translation not possible
+        """
         if len(word) == 0:
             if state and state in self.final:
                 return "a"
@@ -217,4 +261,8 @@ class ST(Symbolic):
 
     @staticmethod
     def get_new():
+        """
+        Creates and returns new empty object of class
+        :return: empty object ST
+        """
         return ST()

@@ -10,6 +10,10 @@ else
     Usage: ./cli [command] [file1] [file2]
     file is a name of input file with automaton in Timbuk format
 
+    Generate pydoc:
+        ./cli doc
+        - documentation goes into a folder ./doc/
+
     Available commands:
         [command - number of needed automata]
         load - 1 [only reads and pints an automaton]
@@ -24,8 +28,12 @@ else
         equality - 2
         runonnfa - 2
         "
+    elif [ "$1" = "doc" ]; then
+        mkdir -p doc
+        pydoc -w ./*.py
+        mv *.html doc
     else
-    echo "Please give some command and input file. Help: ./cli --help"
+        echo "Please give some command and input file. Help: ./cli --help"
     fi
     exit 0
 fi
@@ -47,7 +55,7 @@ epsilon)
   python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = a.remove_epsilon(); b.print_automaton();"
   ;;
 simulations)
-  python3 -c "import symboliclib; a = symboliclib.parse('$file1'); print(a.simulations());"
+  python3 -c "import symboliclib; a = symboliclib.parse('$file1'); print(a.simulations_preorder());"
   ;;
 union)
   if [ $# -gt 2 ]; then
@@ -70,7 +78,7 @@ intersection)
 inclusion)
   if [ $# -gt 2 ]; then
     file2=$3
-    python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); print(a.is_inclusion(b));"
+    python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); print(a.is_included(b));"
   else
     echo "Another argument needed."
     exit 0
@@ -79,7 +87,7 @@ inclusion)
 inclusion_simple)
   if [ $# -gt 2 ]; then
     file2=$3
-    python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); print(a.is_inclusion_simple(b));"
+    python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); print(a.is_included_simple(b));"
   else
     echo "Another argument needed."
     exit 0
@@ -88,7 +96,7 @@ inclusion_simple)
 inclusion_antichain)
   if [ $# -gt 2 ]; then
     file2=$3
-    python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); print(a.is_inclusion_antichain(b));"
+    python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); print(a.is_included_antichain(b));"
   else
     echo "Another argument needed."
     exit 0
