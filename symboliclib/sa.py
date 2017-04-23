@@ -157,21 +157,11 @@ class SA(Symbolic):
         Converts automaton into complement
         :return: complement automaton
         """
-        if self.deterministic is None:
-            self.is_deterministic()
-
         det = self.determinize()
 
-        complement = det.get_new()
-        complement.alphabet = det.alphabet
-        complement.states = det.states
-        complement.start = det.start
-        complement.label = det.label
+        complement = deepcopy(det)
         # changes final states for non-final
         complement.final = det.states - det.final
-        complement.transitions = det.transitions
-        complement.deterministic = complement.is_deterministic()
-        complement.reversed = None
 
         return complement
 
