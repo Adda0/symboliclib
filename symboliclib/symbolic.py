@@ -58,14 +58,14 @@ class Symbolic(object):
 
         return math_format
 
-    def reverse(self):
+    def reverse(self, force=False):
         """
         Reverses the automaton transitions:
         a(p)->q becomes a(q)->p
         stores the resulting automaton in attribute reversed
         :return: reversed version of the automaton
         """
-        if self.reversed:
+        if self.reversed and not force:
             # automaton was reversed before
             return
 
@@ -351,20 +351,21 @@ class Symbolic(object):
                         common = label.conjunction(label2)
                         #print(common)
                         if common and common.is_satisfiable():
-                            endstate = (self.transitions[state1][label][0], automaton_2.transitions[state2][label2][0])
-                            endstate_str = "[" + endstate[0] + "_1|" + endstate[1] + "_2]"
-                            #endstate = self.transitions[state1][label][0] + "," + automaton_2.transitions[state2][label2][0]
+                            endstates = itertools.product(self.transitions[state1][label], automaton_2.transitions[state2][label2])
+                            for endstate in endstates:
+                                endstate_str = "[" + endstate[0] + "_1|" + endstate[1] + "_2]"
+                                #endstate = self.transitions[state1][label][0] + "," + automaton_2.transitions[state2][label2][0]
 
-                            if common not in intersect.transitions[combined_str]:
-                                intersect.transitions[combined_str][common] = [endstate_str]
-                            else:
-                                intersect.transitions[combined_str][common].append(endstate_str)
+                                if common not in intersect.transitions[combined_str]:
+                                    intersect.transitions[combined_str][common] = [endstate_str]
+                                else:
+                                    intersect.transitions[combined_str][common].append(endstate_str)
 
-                            if endstate not in queue and endstate_str not in intersect.states:
-                                queue.append(endstate)
-                            #print(intersect.transitions)
+                                if endstate not in queue and endstate_str not in intersect.states:
+                                    queue.append(endstate)
+                                #print(intersect.transitions)
 
-        intersect.simple_reduce()
+        intersect = intersect.simple_reduce()
         #print(intersect.transitions)
         #intersect.remove_commas_from_states()
 

@@ -124,10 +124,6 @@ class SA(Symbolic):
         sets the deterministic attribute
         :return: bool
         """
-        if self.deterministic is not None:
-            # the deterministic attribute is already set, no need to check again
-            return self.deterministic
-
         if len(self.start) > 1:
             self.deterministic = False
             return False
@@ -164,6 +160,31 @@ class SA(Symbolic):
         complement.final = det.states - det.final
 
         return complement
+
+    def is_included_simple(self, other):
+        """
+        Checks whether automaton is included in the other one:
+        self <= other ?
+        Algorithm checks whether L(self) ^ !L(other) == {}
+        :param other: other automaton
+        :return: bool
+        """
+        # algorithm works for complete automata only
+        alphabet = self.alphabet.union(other.alphabet)
+        det_other = other.determinize()
+        det_other.alphabet = alphabet
+        complete_other = det_other.get_complete()
+        alpha_self = deepcopy(self)
+        alpha_self.alphabet = alphabet
+        complete_self = alpha_self.get_complete()
+        # compute !L(other)
+        det_com = complete_other.complement()
+
+        # compute L(self) ^ !L(other)
+        con = complete_self.intersection(det_com)
+        if con.is_empty():
+            return True
+        return False
 
     def simple_reduce(self):
         """
@@ -298,9 +319,17 @@ class SA(Symbolic):
         :param other: other automaton
         :return: bool
         """
-        self_compl = self.get_complete()
-        other_compl = other.get_complete()
-        # try to find ontradiction in empty word
+        # alphabet which we work with must be a union of both alphabets
+        # otherwise the contradiction doesnt have to be found
+        alphabet = self.alphabet.union(other.alphabet)
+        self_alpha = deepcopy(self)
+        self_alpha.alphabet = alphabet
+        other_alpha = deepcopy(other)
+        other_alpha.alphabet = alphabet
+
+        self_compl = self_alpha.get_complete()
+        other_compl = other_alpha.get_complete()
+        # try to find contradiction in empty word
         if self_compl.final.intersection(self_compl.start):
             if not other_compl.final.intersection(other_compl.start):
                 return False
@@ -308,61 +337,83 @@ class SA(Symbolic):
         other_sim = other_compl.simulations_preorder()
         self_sim = self_compl.simulations_preorder()
 
-        processed = set()
-        next = set(itertools.product(self_compl.start, other_compl.minim_antichain(other_compl.start, other_sim)))
+        processed = []
+        next = []
+        for start in self_compl.start:
+            next.append((start, other_compl.minim_antichain(other_compl.start, other_sim)))
 
         while len(next):
             # (r,R)
             pair = next.pop()
-            processed.add(pair)
+            processed.append(pair)
             post = self_compl.post_antichain(other_compl, pair)
             # (p,P)
             for post_pair in post:
-                post_pair_min = self_compl.minim_antichain(post_pair, other_sim)
-                if post_pair_min[0] in self_compl.final and not post_pair_min[1] in other_compl.final:
+                post_pair_min = (post_pair[0], self_compl.minim_antichain(post_pair[1], other_sim))
+                if post_pair_min[0] in self_compl.final and not other_compl.check_superstate_final(post_pair_min[1]):
                     return False
                 # (x,X)
-                next_cycle = False
-                for processed_pair in next.union(processed):
-                    if (post_pair[0], processed_pair[0]) in self_sim:
-                        if (processed_pair[1], post_pair[1]) in other_sim:
-                            next_cycle = True
+                simulation_processed = False
+                # check if a simulating pair was not processed before
+                for processed_pair in next+processed:
+                    if (post_pair_min[0], processed_pair[0]) in self_sim:
+                        if other.check_superstate_simulations(processed_pair[1], post_pair_min[1], other_sim):
+                            simulation_processed = True
                             break
-                if next_cycle:
-                    continue
-                for pr in processed.copy():
-                    for ne in next.copy():
-                        if (processed_pair[0], post_pair[0]) in self_sim:
-                            if (post_pair[1], processed_pair[1]) in other_sim:
-                                if pr in processed:
-                                    processed.remove(pr)
-                                if ne in next:
-                                    next.remove(ne)
-                next.add(post_pair)
+                if not simulation_processed:
+                    for pr in processed.copy():
+                        for ne in next.copy():
+                            if (processed_pair[0], post_pair[0]) in self_sim:
+                                if other.check_superstate_simulations(post_pair_min[1], processed_pair[1], other_sim):
+                                    if pr in processed:
+                                        processed.remove(pr)
+                                    if ne in next:
+                                        next.remove(ne)
+                    # add for future
+                    if post_pair_min not in next and post_pair_min not in processed:
+                        next.append(post_pair_min)
 
         return True
+
+    def check_superstate_simulations(self, less, more, simulations):
+        combinations = list(itertools.product(less, more))
+        for pair in combinations:
+            if (pair[0], pair[1]) not in simulations and (pair[1], pair[0]) not in simulations:
+                return False
+
+        return True
+
+    def check_superstate_final(self, states_set):
+        if self.final.intersection(states_set):
+            return True
+        return False
+
 
     def post_antichain(self, other, pair):
         """
         Computes post relation for antichain algorithm
         :param other: other automaton
-        :param pair: pair of states (p,q), p is a state from self, q is a state from other
+        :param pair: pair of states (p,Q), p is a state from self, Q is a superstate from other
         :return: post relation
         """
-        result = set()
-
-        if pair[0] in self.transitions and pair[1] in other.transitions:
-            # dont try to put intersection here!!! wont work
-            for a in self.alphabet.union(other.alphabet):
+        result = []
+        for a in self.alphabet.union(other.alphabet):
+            new_qs = set()
+            new_superstates = set()
+            if pair[0] in self.transitions:
                 for label in self.transitions[pair[0]]:
                     if label.has_letter(a):
-                        endstates = self.transitions[pair[0]][label]
-                        for label2 in other.transitions[pair[1]]:
-                            if label2.has_letter(a):
-                                endstates2 = other.transitions[pair[1]][label2]
-                                new_pairs = itertools.product(endstates, endstates2)
-                                for new_pair in new_pairs:
-                                    result.add(new_pair)
+                        new_qs = new_qs.union(self.transitions[pair[0]][label])
+            for superset_state in pair[1]:
+                if superset_state in other.transitions:
+                    for label in other.transitions[superset_state]:
+                        if label.has_letter(a):
+                            new_superstates = new_superstates.union(other.transitions[superset_state][label])
+
+            if new_qs and new_superstates:
+                for q in new_qs:
+                    result.append((q, new_superstates))
+
         return result
 
     def minim_antichain(self, states_set, simulations):
@@ -372,33 +423,15 @@ class SA(Symbolic):
         :param simulations: simulation relation over automata states
         :return: reduced states set
         """
+        for pair in simulations:
+            state = pair[0]
+            sim_state = pair[1]
+            if state != sim_state and state in states_set and sim_state in states_set:
+                states_set.remove(state)
+
         return states_set
-        """for pair in simulations:
-            less = pair[0]
-            more = pair[1]
-            if less != more and less in states_set and more in states_set:
-                states_set.remove(less)
 
-        return states_set"""
 
-    def is_included_simple(self, other):
-        """
-        Checks whether automaton is included in the other one:
-        self <= other ?
-        Algorithm checks whether L(self) ^ !L(other) == {}
-        :param other: other automaton
-        :return: bool
-        """
-        # algorithm work for complete automata only
-        complete_other = other.determinize().get_complete()
-        complete_self = self.get_complete()
-        # compute !L(other)
-        det_com = complete_other.complement()
-        # compute L(self) ^ !L(other)
-        con = complete_self.intersection(det_com)
-        if con.is_empty():
-            return True
-        return False
 
     def is_included(self, other):
         """
@@ -512,7 +545,7 @@ class SA(Symbolic):
         """
         complete = self.get_complete()
 
-        complete.reverse()
+        complete.reverse(True)
         rever_trans = complete.reversed.transitions
 
         card = {}
@@ -624,9 +657,9 @@ class SA(Symbolic):
         # automaton is already deterministic
         if self.deterministic:
             self.determinized = deepcopy(self)
-            return self
+            return deepcopy(self)
 
-        if self.determinized is not None:
+        if self.determinized is not None and self.determinized.is_deterministic():
             return deepcopy(self.determinized)
 
         det = self.get_new()

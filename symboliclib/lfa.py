@@ -61,10 +61,6 @@ class LFA(SA):
         sets the deterministic attribute
         :return: bool
         """
-        if self.deterministic is not None:
-            # the deterministic attribute is already set, no need to check again
-            return self.deterministic
-
         # automaton with more than one start state is nondeterministic
         if len(self.start) > 1:
             self.deterministic = False
@@ -88,6 +84,8 @@ class LFA(SA):
         :param a2: the second automaton
         :return: automaton created by intersection
         """
+        #self.print_automaton()
+        #a2.print_automaton()
         intersect = self.get_new()
         intersect.alphabet = self.alphabet.intersection(a2.alphabet)
         intersect.reversed = None
@@ -112,20 +110,33 @@ class LFA(SA):
             if state1 in self.transitions and state2 in a2.transitions:
                 for label in self.transitions[state1]:
                     if label in a2.transitions[state2]:
-                        endstate = (self.transitions[state1][label][0], a2.transitions[state2][label][0])
-                        endstate_str = "[" + endstate[0] + "_1|" + endstate[1] + "_2]"
+                        endstates = itertools.product(self.transitions[state1][label], a2.transitions[state2][label])
+                        for endstate in endstates:
+                            endstate_str = "[" + endstate[0] + "_1|" + endstate[1] + "_2]"
 
-                        if label not in intersect.transitions[combined_str]:
-                            intersect.transitions[combined_str][label] = [endstate_str]
-                        else:
-                            intersect.transitions[combined_str][label].append(endstate_str)
+                            if label not in intersect.transitions[combined_str]:
+                                intersect.transitions[combined_str][label] = [endstate_str]
+                            else:
+                                intersect.transitions[combined_str][label].append(endstate_str)
 
-                        if endstate not in queue and endstate_str not in intersect.states:
-                            queue.append(endstate)
+                            if endstate not in queue and endstate_str not in intersect.states:
+                                queue.append(endstate)
 
         intersect = intersect.simple_reduce()
-
         return intersect
+
+    def simple_reduce(self):
+        """
+        Reduces automaton by removing unreachable and useless states
+        :return: reduced automaton
+        """
+        result = deepcopy(self)
+        # first remove deadend transitions
+        result = result.remove_useless()
+        # then remove unreachable transitions
+        result = result.remove_unreachable()
+
+        return result
 
     def simulations_preorder(self):
         """
@@ -262,3 +273,48 @@ class LFA(SA):
                             complete.transitions[state][label].append("qsink")
 
         return complete
+
+    def get_deterministic_transitions(self, state_group):
+        """
+        Returns deterministic transitions from a given state
+        :param state_group: comma separated set of states
+        :return: deterministic transitions
+        """
+        new_transitions = {}
+
+        for state in state_group.split(","):
+            if state not in self.transitions:
+                continue
+
+            for a in self.transitions[state]:
+                if a in new_transitions:
+                    # if label already exists, unite endstates
+                    existing_transitions = set(",".join(new_transitions[a]).split(","))
+                    new_transitions[a] = [",".join(sorted(existing_transitions.union(set(self.transitions[state][a]))))]
+                else:
+                    new_transitions[a] = [",".join(sorted(self.transitions[state][a]))]
+
+        return new_transitions
+
+    def post_antichain(self, other, pair):
+        """
+        Computes post relation for antichain algorithm
+        :param other: other automaton
+        :param pair: pair of states (p,Q), p is a state from self, Q is a superstate from other
+        :return: post relation
+        """
+        result = []
+
+        if pair[0] in self.transitions:
+            for a in self.transitions[pair[0]]:
+                new_qs = set()
+                new_superstates = set()
+                new_qs = new_qs.union(self.transitions[pair[0]][a])
+                for superset_state in pair[1]:
+                    if superset_state in other.transitions and a in other.transitions[superset_state]:
+                        new_superstates = new_superstates.union(other.transitions[superset_state][a])
+                if new_qs and new_superstates:
+                    for q in new_qs:
+                        result.append((q, new_superstates))
+
+        return result
