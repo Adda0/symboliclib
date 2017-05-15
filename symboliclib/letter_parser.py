@@ -1,5 +1,7 @@
 """
 Parsr for predicate letter - clssic finite automata symbol
+
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 """
 from letter import Letter
 

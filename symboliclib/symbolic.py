@@ -2,6 +2,8 @@
 Symbolic class
 
 used for implementation od method that are the same for automata and transducers
+
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 """
 from __future__ import print_function
 import itertools

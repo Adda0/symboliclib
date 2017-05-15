@@ -1,5 +1,7 @@
 """
 Automata and transducer parser
+
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 """
 from __future__ import print_function
 from sa import SA
@@ -135,7 +137,7 @@ def parse(testfile):
         exit(-1)
 
     if automaton.is_epsilon_free:
-        automaton.simple_reduce()
+        automaton = automaton.simple_reduce()
 
     return automaton
 

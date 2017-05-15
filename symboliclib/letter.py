@@ -1,5 +1,7 @@
 """
 Symbol predicates class
+
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 """
 import abc
 from predicate_interface import PredicateInterface

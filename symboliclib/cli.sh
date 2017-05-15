@@ -6,12 +6,13 @@ if [ $# -gt 1 ]; then
 else
     if [ "$1" = "--help" ]; then
         echo "COMMAND LINE INTERFACE TO SYMBOLICLIB
+    Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 
-    Usage: ./cli [command] [file1] [file2]
+    Usage: ./cli.sh [command] [file1] [file2]
     file is a name of input file with automaton in Timbuk format
 
     Generate pydoc:
-        ./cli doc
+        ./cli.sh doc
         - documentation goes into a folder ./doc/
 
     Available commands:
@@ -25,6 +26,9 @@ else
         union - 2
         intersection - 2
         inclusion - 2
+        inclusion_simple - 2
+        inclusion_antichain - 2
+        inclusion_antichain_pure - 2
         equality - 2
         runonnfa - 2
         "
@@ -33,7 +37,9 @@ else
         pydoc -w ./*.py
         mv *.html doc
     else
-        echo "Please give some command and input file. Help: ./cli --help"
+        echo "COMMAND LINE INTERFACE TO SYMBOLICLIB
+Please give some command and input file. Help: ./cli --help
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>"
     fi
     exit 0
 fi
@@ -97,6 +103,15 @@ inclusion_antichain)
   if [ $# -gt 2 ]; then
     file2=$3
     python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); print(a.is_included_antichain(b));"
+  else
+    echo "Another argument needed."
+    exit 0
+  fi
+  ;;
+inclusion_antichain_pure)
+  if [ $# -gt 2 ]; then
+    file2=$3
+    python3 -c "import symboliclib; a = symboliclib.parse('$file1'); b = symboliclib.parse('$file2'); print(a.is_included_antichain_pure(b));"
   else
     echo "Another argument needed."
     exit 0

@@ -1,5 +1,7 @@
 """
 Main module of the library containing method main
+
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 """
 
 from __future__ import print_function
@@ -80,4 +82,4 @@ def test_operations_automata(filename, filename2):
     print(result)
 
 if __name__ == '__main__':
-    test_operations_automata("./test/minim", "./test/meduna")
+    test_operations_automata("./test/symbolic_test1", "./test/symbolic_test2")

@@ -2,6 +2,8 @@
 LFA - Letter Finite Automaton class
 
 represents classic finite automaton
+
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 """
 from __future__ import print_function
 from sa import SA

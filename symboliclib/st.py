@@ -2,6 +2,8 @@
 ST - Symbolic Transducer class
 
 represents symbolic transducer
+
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 """
 from __future__ import print_function
 

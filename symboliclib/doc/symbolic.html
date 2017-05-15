@@ -1,0 +1,145 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module symbolic</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>symbolic</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/miska/Plocha/bp/code/symboliclib/symbolic.py">/home/miska/Plocha/bp/code/symboliclib/symbolic.py</a></font></td></tr></table>
+    <p><tt><a href="#Symbolic">Symbolic</a>&nbsp;class<br>
+&nbsp;<br>
+used&nbsp;for&nbsp;implementation&nbsp;od&nbsp;method&nbsp;that&nbsp;are&nbsp;the&nbsp;same&nbsp;for&nbsp;automata&nbsp;and&nbsp;transducers<br>
+&nbsp;<br>
+Copyright&nbsp;(c)&nbsp;2017&nbsp;&nbsp;Michaela&nbsp;Bielikova&nbsp;&lt;xbieli06@stud.fit.vutbr.cz&gt;</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="itertools.html">itertools</a><br>
+</td><td width="25%" valign=top></td><td width="25%" valign=top></td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="__builtin__.html#object">__builtin__.object</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="symbolic.html#Symbolic">Symbolic</a>
+</font></dt></dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="Symbolic">class <strong>Symbolic</strong></a>(<a href="__builtin__.html#object">__builtin__.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#Symbolic">Symbolic</a>&nbsp;class<br>
+&nbsp;<br>
+Attributes:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;--&nbsp;classic&nbsp;automaton&nbsp;attributes:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;alphabet&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set&nbsp;of&nbsp;symbols<br>
+&nbsp;&nbsp;&nbsp;&nbsp;states&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set&nbsp;of&nbsp;states<br>
+&nbsp;&nbsp;&nbsp;&nbsp;start&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set&nbsp;of&nbsp;initial&nbsp;states<br>
+&nbsp;&nbsp;&nbsp;&nbsp;final&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set&nbsp;of&nbsp;final&nbsp;states<br>
+&nbsp;&nbsp;&nbsp;&nbsp;transitions&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dictionary&nbsp;of&nbsp;transitions<br>
+&nbsp;&nbsp;&nbsp;&nbsp;automaton_type&nbsp;&nbsp;type&nbsp;of&nbsp;automaton&nbsp;-&nbsp;here&nbsp;SA&nbsp;(<a href="#Symbolic">Symbolic</a>&nbsp;Automaton)<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;--&nbsp;information&nbsp;about&nbsp;automaton:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;deterministic&nbsp;&nbsp;&nbsp;flag&nbsp;whether&nbsp;automaton&nbsp;is&nbsp;deterministic<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is_epsilon_free&nbsp;flag&nbsp;whether&nbsp;automaton&nbsp;is&nbsp;epsilon&nbsp;free<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;--&nbsp;attributes&nbsp;used&nbsp;for&nbsp;optimisation:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;reversed&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reversed&nbsp;version&nbsp;of&nbsp;automaton<br>
+&nbsp;&nbsp;&nbsp;&nbsp;epsilon_free&nbsp;&nbsp;&nbsp;&nbsp;epsilon&nbsp;free&nbsp;version&nbsp;of&nbsp;automaton<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="Symbolic-__init__"><strong>__init__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Symbolic-check_automaton"><strong>check_automaton</strong></a>(self)</dt><dd><tt>Checks&nbsp;whether&nbsp;automaton&nbsp;is&nbsp;valid:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;has&nbsp;initial&nbsp;states<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;has&nbsp;states<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;has&nbsp;nonempty&nbsp;alphabet<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;final&nbsp;states&nbsp;are&nbsp;subset&nbsp;of&nbsp;all&nbsp;states<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;initial&nbsp;states&nbsp;are&nbsp;subset&nbsp;of&nbsp;all&nbsp;states<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;all&nbsp;states&nbsp;used&nbsp;in&nbsp;transitions&nbsp;are&nbsp;in&nbsp;automaton&nbsp;states<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;all&nbsp;transition&nbsp;labels&nbsp;are&nbsp;satisfiable<br>
+:return:&nbsp;OK&nbsp;if&nbsp;automaton&nbsp;is&nbsp;valid,&nbsp;Error&nbsp;message&nbsp;if&nbsp;automaton&nbsp;is&nbsp;invalid</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-get_math_format"><strong>get_math_format</strong></a>(self)</dt><dd><tt>Returns&nbsp;automaton&nbsp;in&nbsp;dictionary&nbsp;as&nbsp;in&nbsp;the&nbsp;definition:<br>
+A&nbsp;=&nbsp;(alphabet,&nbsp;states,&nbsp;initial_states,&nbsp;final_states,&nbsp;transitions)<br>
+:return:&nbsp;dictionary</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-intersection"><strong>intersection</strong></a>(self, automaton_2)</dt><dd><tt>Performs&nbsp;intersection&nbsp;of&nbsp;two&nbsp;automata<br>
+:param&nbsp;automaton_2:&nbsp;the&nbsp;second&nbsp;automaton<br>
+:return:&nbsp;automaton&nbsp;created&nbsp;by&nbsp;intersection</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-is_empty"><strong>is_empty</strong></a>(self)</dt><dd><tt>Checks&nbsp;whether&nbsp;language&nbsp;of&nbsp;the&nbsp;automaton&nbsp;is&nbsp;empty<br>
+:return:&nbsp;bool</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-is_reachable"><strong>is_reachable</strong></a>(self, check)</dt><dd><tt>Checks&nbsp;whether&nbsp;a&nbsp;state&nbsp;is&nbsp;reachable<br>
+:return:&nbsp;bool</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-is_useless"><strong>is_useless</strong></a>(self, state)</dt><dd><tt>Checks&nbsp;whether&nbsp;a&nbsp;state&nbsp;is&nbsp;useless&nbsp;-&nbsp;doesnt&nbsp;lead&nbsp;to&nbsp;end&nbsp;state<br>
+:return:&nbsp;bool</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-print_automaton"><strong>print_automaton</strong></a>(self, filename<font color="#909090">=None</font>)</dt><dd><tt>Prints&nbsp;automaton&nbsp;in&nbsp;Timbuk&nbsp;format<br>
+if&nbsp;a&nbsp;filename&nbsp;is&nbsp;given,&nbsp;prints&nbsp;automaton&nbsp;into&nbsp;file</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-remove_empty_transitions"><strong>remove_empty_transitions</strong></a>(self)</dt><dd><tt>Reduces&nbsp;automaton&nbsp;by&nbsp;removing&nbsp;transitions&nbsp;leading&nbsp;nowhere<br>
+:return:&nbsp;reduced&nbsp;automaton</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-remove_unreachable"><strong>remove_unreachable</strong></a>(self)</dt><dd><tt>Reduces&nbsp;automaton&nbsp;by&nbsp;removing&nbsp;unreachable&nbsp;states<br>
+:return:&nbsp;reduced&nbsp;automaton</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-remove_unused_states"><strong>remove_unused_states</strong></a>(self)</dt><dd><tt>Reduces&nbsp;automaton&nbsp;by&nbsp;removing&nbsp;states&nbsp;that&nbsp;are&nbsp;not&nbsp;used&nbsp;in&nbsp;any&nbsp;transition<br>
+:return:&nbsp;reduced&nbsp;automaton</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-remove_useless"><strong>remove_useless</strong></a>(self)</dt><dd><tt>Reduces&nbsp;automaton&nbsp;by&nbsp;removing&nbsp;useless&nbsp;states<br>
+:return:&nbsp;reduced&nbsp;automaton</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-reverse"><strong>reverse</strong></a>(self, force<font color="#909090">=False</font>)</dt><dd><tt>Reverses&nbsp;the&nbsp;automaton&nbsp;transitions:<br>
+a(p)-&gt;q&nbsp;becomes&nbsp;a(q)-&gt;p<br>
+stores&nbsp;the&nbsp;resulting&nbsp;automaton&nbsp;in&nbsp;attribute&nbsp;reversed<br>
+:return:&nbsp;reversed&nbsp;version&nbsp;of&nbsp;the&nbsp;automaton</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-simple_reduce"><strong>simple_reduce</strong></a>(self)</dt><dd><tt>Reduces&nbsp;automaton&nbsp;by&nbsp;removing&nbsp;unreachable&nbsp;and&nbsp;useless&nbsp;states<br>
+:return:&nbsp;reduced&nbsp;automaton</tt></dd></dl>
+
+<dl><dt><a name="Symbolic-union"><strong>union</strong></a>(self, other)</dt><dd><tt>Performss&nbsp;union&nbsp;of&nbsp;two&nbsp;automata<br>
+:param&nbsp;other:&nbsp;the&nbsp;second&nbsp;automaton<br>
+:return:&nbsp;automaton&nbsp;created&nbsp;by&nbsp;union</tt></dd></dl>
+
+<hr>
+Static methods defined here:<br>
+<dl><dt><a name="Symbolic-get_new"><strong>get_new</strong></a>()</dt><dd><tt>Creates&nbsp;and&nbsp;returns&nbsp;new&nbsp;empty&nbsp;<a href="__builtin__.html#object">object</a>&nbsp;of&nbsp;class<br>
+:return:&nbsp;empty&nbsp;<a href="__builtin__.html#object">object</a>&nbsp;<a href="#Symbolic">Symbolic</a></tt></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>print_function</strong> = _Feature((2, 6, 0, 'alpha', 2), (3, 0, 0, 'alpha', 0), 65536)</td></tr></table>
+</body></html>

@@ -1,5 +1,7 @@
 """
 Parser of in_notin predicates
+
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 """
 from in_notin import InNotin
 

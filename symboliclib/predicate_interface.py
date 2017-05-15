@@ -1,7 +1,9 @@
 """
 Module defining Predicate Interface
 
-contains list of methods very predicate must implement
+contains list of methods every predicate must implement
+
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 """
 
 import abc

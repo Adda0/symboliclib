@@ -2,6 +2,8 @@
 SA - Symbolic Automaton class
 
 represents symbolic finite automaton
+
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 """
 from __future__ import print_function
 
@@ -375,7 +377,57 @@ class SA(Symbolic):
 
         return True
 
+    def is_included_antichain_pure(self, other):
+        """
+        Checks whether automaton is included in the other one:
+        self <= other ?
+        Algorithm doesnt use simulations
+        :param other: other automaton
+        :return: bool
+        """
+        # alphabet which we work with must be a union of both alphabets
+        # otherwise the contradiction doesnt have to be found
+        alphabet = self.alphabet.union(other.alphabet)
+        self_alpha = deepcopy(self)
+        self_alpha.alphabet = alphabet
+        other_alpha = deepcopy(other)
+        other_alpha.alphabet = alphabet
+
+        self_compl = self_alpha.get_complete()
+        other_compl = other_alpha.get_complete()
+        # try to find contradiction in empty word
+        if self_compl.final.intersection(self_compl.start):
+            if not other_compl.final.intersection(other_compl.start):
+                return False
+
+        processed = []
+        next = []
+        for start in self_compl.start:
+            next.append((start, other_compl.start))
+
+        while len(next):
+            # (r,R)
+            pair = next.pop()
+            processed.append(pair)
+            post = self_compl.post_antichain(other_compl, pair)
+            # (p,P)
+            for post_pair in post:
+                post_pair_min = (post_pair[0], post_pair[1])
+                if post_pair_min[0] in self_compl.final and not other_compl.check_superstate_final(post_pair_min[1]):
+                    return False
+                if post_pair_min not in next and post_pair_min not in processed:
+                    next.append(post_pair_min)
+
+        return True
+
     def check_superstate_simulations(self, less, more, simulations):
+        """
+        Checks if macrostate simulates M another macrostate L (L<=M)
+        :param less: macrostate L
+        :param more: macrostate M
+        :param simulations: simulations relation
+        :return: True or False
+        """
         combinations = list(itertools.product(less, more))
         for pair in combinations:
             if (pair[0], pair[1]) not in simulations and (pair[1], pair[0]) not in simulations:
@@ -384,6 +436,11 @@ class SA(Symbolic):
         return True
 
     def check_superstate_final(self, states_set):
+        """
+        Checks if a macrostate is final
+        :param states_set: macrostate to check
+        :return: True or False
+        """
         if self.final.intersection(states_set):
             return True
         return False

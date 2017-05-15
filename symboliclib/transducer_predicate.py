@@ -1,6 +1,8 @@
 """
 Transducer predicate class and parser
 has input and output predicate and defines operations with them
+
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 """
 import abc
 import random
@@ -48,8 +50,8 @@ class TransPred(PredicateInterface):
         """
         result = TransPred()
         result.identity = self.identity
-        result.input = result.input.complement()
-        result.output = result.output.complement()
+        result.input = self.input.complement()
+        result.output = self.output.complement()
         return result
 
     @abc.abstractmethod
@@ -66,14 +68,14 @@ class TransPred(PredicateInterface):
             result.identity = False
 
         if result.identity:
-            identic_input = result.input.conjunction(predicate.input)
-            identic_output = result.output.conjunction(predicate.output)
+            identic_input = self.input.conjunction(predicate.input)
+            identic_output = self.output.conjunction(predicate.output)
             identic = identic_input.conjunction(identic_output)
             result.input = identic
             result.output = identic
         else:
-            result.input = result.input.conjunction(predicate.input)
-            result.output = result.output.conjunction(predicate.output)
+            result.input = self.input.conjunction(predicate.input)
+            result.output = self.output.conjunction(predicate.output)
 
         return result
 
@@ -92,14 +94,14 @@ class TransPred(PredicateInterface):
             result.identity = False
 
         if result.identity:
-            identic_input = result.input.disjunction(predicate.input)
-            identic_output = result.output.disjunction(predicate.output)
+            identic_input = self.input.disjunction(predicate.input)
+            identic_output = self.output.disjunction(predicate.output)
             identic = identic_input.conjunction(identic_output)
             result.input = identic
             result.output = identic
         else:
-            result.input = result.input.disjunction(predicate.input)
-            result.output = result.output.disjunction(predicate.output)
+            result.input = self.input.disjunction(predicate.input)
+            result.output = self.output.disjunction(predicate.output)
 
         return result
 
@@ -160,7 +162,7 @@ class TransPred(PredicateInterface):
         result = TransPred()
         if self.identity or result.identity:
             result.identity = True
-            identic = self.input.conunction(other.output)
+            identic = self.input.conjunction(other.output)
             result.input = identic
             result.output = identic
         else:

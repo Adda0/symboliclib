@@ -1,5 +1,7 @@
 """
 Class representing epsilon
+
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 """
 import abc
 

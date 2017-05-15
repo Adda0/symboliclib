@@ -1,5 +1,176 @@
-# symboliclib
+*****************************************************************************
+*				Symboliclib				    *
+*									    *
+*	library for finite and symbolic automata and transucers		    *
+*****************************************************************************
 
-Library for finite and symbolic automata in Python3.
+Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 
-Experiments, testing and mistakes fixing in progress.
+About
+=====
+
+Symboliclib is a library implemented in Python 3. It supports finite and symbolic automata as well as finite and symbolic transducers. The default input format of symboliclib is Timbuk which is so far the only supported format. The library supports conversion of symbolic automata to classic finite automata and serialisation of automata back to Timbuk text format.
+
+The predicates supported by default are in and not_in predicated inspired by FSA
+library and letter predicates which represent symbols used in classic finite automata
+and transducers. Some of the algorithms which can be optimised to work on finite au-
+tomata more efficiently than on symbolic automata are implemented for both types of
+automata separately.
+
+Adding new types of predicates is simple as long as they implement the predefinedinterface. Usage of SMT solvers is also possible by creating a middle-layer that convertsthe interface of SMT solver to the interface required by symboliclib.
+
+Downloading
+===========
+
+It is highly recommended to use a recent version for experimenting
+with symboliclib. In order to be able to download the library, you need to have
+the git version control system installed.
+
+To download the library, run
+
+  $ git clone https://github.com/Miskaaa/symboliclib.git
+
+This creates a local independent copy of the source code repository.
+
+Prerequisites
+=============
+
+Python3
+
+Command-Line Interface
+======================
+
+Available in folder /symboliclib
+
+Prerequisity - bash
+
+The up-to-date list of supported operations and arguments is available through
+
+  $ ./cli.sh --help
+
+Examples
+--------
+
+Loading an automaton
+....................
+
+In order to load and dump automaton, run
+
+  $ ./cli.sh load aut_file
+
+
+Intersection of automata
+.................
+
+To create an automaton that accepts a language which is the intersection of languages
+of automata from files 'aut_file1' and 'aut_file2', run
+
+  $ ./cli.sh intersection 'aut_file1' 'aut_file2'
+
+Python Console
+======================
+
+Import symboliclib:
+
+>>> import symboliclib
+
+Examples
+--------
+
+Loading an automaton
+....................
+
+In order to load and dump automaton, run
+
+>>> import symboliclib
+>>> a = symboliclib.parse("./test/symbolic_test1")
+>>> a.print_automaton()
+
+
+Intersection of automata
+.................
+
+To create an automaton that accepts a language which is the intersection of languages
+of automata from files 'aut_file1' and 'aut_file2', run
+
+>>> import symboliclib
+>>> a = symboliclib.parse("./test/symbolic_test1")
+>>> b = symboliclib.parse("./test/symbolic_test2")
+>>> c = a.intersection(b)
+>>> c.print_automaton()
+
+Input Format
+============
+
+symboliclib supports only the Timbuk format of automata. The format is
+specified by the following grammar with the start symbol <file>:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  <file>            : 'Ops' <label_list> <automaton>
+
+  <label_list>      : <label_decl> <label_decl> ... // a list of label declarations
+
+  <label_decl>      : string ':' int // a symbol declaration (the name and the arity)
+
+  <automaton>       : 'Automaton' string <automaton_type> 'States' <state_list> 'Final States' <state_list> 'Transitions' <transition_list>
+
+  <state_list>      : <state> <state> ... // a list of states
+
+  <state>           : string // the name of a state
+
+  <transition_list> : <transition> <transition> ... // a list of transitions
+
+  <transition>      : <label> '(' <state> ')' '->' <state> // a transition
+
+  <label>           : string // the name of a label
+
+  <automaton_type>  : string // type of the automaton, empty string or @LFA for classic finite automata, @INFA for symbolic automata, @INT for symbolic transducer
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An example could look like this:
+
+Ops a:1 b:1 x:0 
+
+Automaton A
+States q0 q1 q2 q3
+Final States q3
+Transitions
+x -> q0
+a(q0) -> q1
+b(q0) -> q1
+b(q0) -> q3
+a(q0) -> q2
+a(q2) -> q0
+b(q2) -> q0
+a(q1) -> q1
+a(q1) -> q3
+a(q3) -> q1
+b(q3) -> q2
+
+And an example of symbolic automaton representing the same language:
+
+Ops a:1 b:1 x:0 
+
+Automaton A @INFA
+States q0 q1 q2 q3
+Final States q3
+Transitions
+x -> q0
+"in{a,b}"(q0) -> q1
+"in{b}"(q0) -> q3
+"in{a}"(q0) -> q2
+"in{a,b}"(q2) -> q0
+"in{a}"(q1) -> q1
+"in{a}"(q1) -> q3
+"in{a}"(q3) -> q1
+"in{b}"(q3) -> q2
+
+More examples can be found in /symboliclib/test
+
+Documentation
+============
+
+Generated by pydoc. Can be found in /symboliclib/doc.
+

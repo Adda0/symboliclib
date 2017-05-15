@@ -7,6 +7,6 @@ Final States x2
 Transitions
 x -> x1
 "in{a,b,c}/in{a,b,c,d,e}"(x1) -> x2
-"in{d}/in{b}"(x1) -> x1
+"in{d}/in{f,g,h}"(x1) -> x1
 "in{e}/in{c}"(x2) -> x2
 "@in{c,d}/@in{c,d}"(x2) -> x2
