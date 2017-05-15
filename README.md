@@ -1,8 +1,8 @@
-*****************************************************************************
-*				Symboliclib				    *
-*									    *
-*	library for finite and symbolic automata and transucers		    *
-*****************************************************************************
+
+Symboliclib
+=====
+
+* library for finite and symbolic automata and transucers
 
 Copyright (c) 2017  Michaela Bielikova <xbieli06@stud.fit.vutbr.cz>
 
@@ -51,16 +51,14 @@ The up-to-date list of supported operations and arguments is available through
 Examples
 --------
 
-Loading an automaton
-....................
+* Loading an automaton
 
 In order to load and dump automaton, run
 
   $ ./cli.sh load aut_file
 
 
-Intersection of automata
-.................
+* Intersection of automata
 
 To create an automaton that accepts a language which is the intersection of languages
 of automata from files 'aut_file1' and 'aut_file2', run
@@ -72,32 +70,36 @@ Python Console
 
 Import symboliclib:
 
->>> import symboliclib
+\>>> import symboliclib
 
 Examples
 --------
 
-Loading an automaton
-....................
+* Loading an automaton
 
 In order to load and dump automaton, run
 
->>> import symboliclib
->>> a = symboliclib.parse("./test/symbolic_test1")
->>> a.print_automaton()
+\>>> import symboliclib
+
+\>>> a = symboliclib.parse("./test/symbolic_test1")
+
+\>>> a.print_automaton()
 
 
-Intersection of automata
-.................
+* Intersection of automata
 
 To create an automaton that accepts a language which is the intersection of languages
 of automata from files 'aut_file1' and 'aut_file2', run
 
->>> import symboliclib
->>> a = symboliclib.parse("./test/symbolic_test1")
->>> b = symboliclib.parse("./test/symbolic_test2")
->>> c = a.intersection(b)
->>> c.print_automaton()
+\>>> import symboliclib
+
+\>>> a = symboliclib.parse("./test/symbolic_test1")
+
+\>>> b = symboliclib.parse("./test/symbolic_test2")
+
+\>>> c = a.intersection(b)
+
+\>>> c.print_automaton()
 
 Input Format
 ============
@@ -133,39 +135,39 @@ An example could look like this:
 
 Ops a:1 b:1 x:0 
 
-Automaton A
-States q0 q1 q2 q3
-Final States q3
-Transitions
-x -> q0
-a(q0) -> q1
-b(q0) -> q1
-b(q0) -> q3
-a(q0) -> q2
-a(q2) -> q0
-b(q2) -> q0
-a(q1) -> q1
-a(q1) -> q3
-a(q3) -> q1
-b(q3) -> q2
+Automaton A  
+States q0 q1 q2 q3   
+Final States q3   
+Transitions   
+x -> q0   
+a(q0) -> q1   
+b(q0) -> q1   
+b(q0) -> q3   
+a(q0) -> q2   
+a(q2) -> q0   
+b(q2) -> q0   
+a(q1) -> q1   
+a(q1) -> q3   
+a(q3) -> q1   
+b(q3) -> q2   
 
 And an example of symbolic automaton representing the same language:
 
 Ops a:1 b:1 x:0 
 
-Automaton A @INFA
-States q0 q1 q2 q3
-Final States q3
-Transitions
-x -> q0
-"in{a,b}"(q0) -> q1
-"in{b}"(q0) -> q3
-"in{a}"(q0) -> q2
-"in{a,b}"(q2) -> q0
-"in{a}"(q1) -> q1
-"in{a}"(q1) -> q3
-"in{a}"(q3) -> q1
-"in{b}"(q3) -> q2
+Automaton A @INFA   
+States q0 q1 q2 q3   
+Final States q3   
+Transitions   
+x -> q0   
+"in{a,b}"(q0) -> q1   
+"in{b}"(q0) -> q3   
+"in{a}"(q0) -> q2   
+"in{a,b}"(q2) -> q0   
+"in{a}"(q1) -> q1   
+"in{a}"(q1) -> q3   
+"in{a}"(q3) -> q1   
+"in{b}"(q3) -> q2   
 
 More examples can be found in /symboliclib/test
 
