@@ -1,0 +1,14 @@
+Ops a:1 b:1 x:0 
+
+Automaton A @LFA
+States q1 q2 q3 q4
+Final States q4
+Transitions
+x -> q1
+"a"(q1) -> q1
+"b"(q1) -> q1
+"a"(q1) -> q2
+"b"(q2) -> q3
+"b"(q3) -> q4
+"a"(q4) -> q4
+"b"(q4) -> q4
