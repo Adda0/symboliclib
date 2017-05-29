@@ -199,7 +199,7 @@ class LFA(SA):
             state = q.pop()
             for state2 in q:
                 if state != state2:
-                    if (state, state2) not in result and (state2, state) not in result:
+                    if (state, state2) not in result:
                         simulations.append((state, state2))
 
         for state in complete.states:
@@ -295,6 +295,80 @@ class LFA(SA):
                     new_transitions[a] = [",".join(sorted(existing_transitions.union(set(self.transitions[state][a]))))]
                 else:
                     new_transitions[a] = [",".join(sorted(self.transitions[state][a]))]
+
+        return new_transitions
+
+    def determinize_simulations(self):
+        """
+        Converts automaton into a deterministic one
+        uses simulations optimisation
+        :return: determinised automaton
+        """
+        # automaton is already deterministic
+        if self.deterministic:
+            self.determinized = deepcopy(self)
+            return deepcopy(self)
+
+        if self.determinized is not None and self.determinized.is_deterministic():
+            return deepcopy(self.determinized)
+
+        det = self.get_new()
+        det.start = set()
+        det.label = self.label
+        det.start.add(",".join(self.start))
+
+        det.alphabet = self.alphabet.copy()
+
+        queue = set()
+        queue.add(",".join(self.start))
+        simulations = self.simulations_preorder()
+
+        checked = []
+        while len(queue) > 0:
+            state = queue.pop()
+            checked.append(state)
+            det.states.add(state)
+            # add final states
+            for old_state in state.split(","):
+                if old_state in self.final:
+                    det.final.add(state)
+
+            new_trans = self.get_deterministic_transitions_optim(state, simulations)
+            det.transitions[state] = new_trans
+            for label in new_trans:
+                for endstate in new_trans[label]:
+                    if endstate not in queue and endstate not in checked:
+                        queue.add(endstate)
+
+        det = det.simple_reduce()
+        det.is_deterministic()
+
+        self.determinized = det
+
+        return det
+
+    def get_deterministic_transitions_optim(self, state_group, simulations):
+        """
+        Returns deterministic transitions from a given state
+        :param state_group: comma separated set of states
+        :return: deterministic transitions
+        """
+        new_transitions = {}
+
+        for state in state_group.split(","):
+            if state not in self.transitions:
+                continue
+
+            for a in self.transitions[state]:
+                if a in new_transitions:
+                    # if label already exists, unite endstates
+                    existing_transitions = set(",".join(new_transitions[a]).split(","))
+
+                    minimal_states = self.minim_antichain(existing_transitions.union(set(self.transitions[state][a])), simulations)
+                    new_transitions[a] = [",".join(sorted(minimal_states))]
+                else:
+
+                    new_transitions[a] = [",".join(sorted(self.minim_antichain(self.transitions[state][a], simulations)))]
 
         return new_transitions
 

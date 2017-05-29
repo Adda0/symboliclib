@@ -20,6 +20,7 @@ else
         load - 1 [only reads and pints an automaton]
         complement - 1
         determinize - 1
+        determinize_simulations - 1 [only for classic letter automata]
         minimize - 1
         simulations - 1
         epsilon - 1
@@ -53,6 +54,9 @@ load)
   ;;
 determinize)
   python3 -c "import symboliclib; a = symboliclib.parse('$file1'); r = a.determinize(); r.print_automaton();"
+  ;;
+determinize_simulations)
+  python3 -c "import symboliclib; a = symboliclib.parse('$file1'); r = a.determinize_simulations(); r.print_automaton();"
   ;;
 minimize)
   python3 -c "import symboliclib; a = symboliclib.parse('$file1'); r = a.minimize(); r.print_automaton();"

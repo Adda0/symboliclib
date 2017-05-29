@@ -666,7 +666,7 @@ class SA(Symbolic):
             state = q.pop()
             for state2 in q:
                 if state != state2:
-                    if (state, state2) not in result and (state2, state) not in result:
+                    if (state, state2) not in result:
                         simulations.append((state, state2))
 
         for state in complete.states:
