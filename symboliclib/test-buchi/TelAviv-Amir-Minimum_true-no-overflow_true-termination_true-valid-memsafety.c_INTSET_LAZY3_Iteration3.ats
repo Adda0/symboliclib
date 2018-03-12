@@ -1,0 +1,26 @@
+Ops a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 
+
+Automaton A @GBA 
+States s0 s1 s2 s3 
+Final States  s1 
+Transitions
+x -> s3
+"a9"(s0) -> s0
+"a10"(s0) -> s0
+"a13"(s0) -> s2
+"a14"(s0) -> s2
+"a12"(s1) -> s0
+"a13"(s1) -> s2
+"a14"(s1) -> s2
+"a8"(s1) -> s0
+"a3"(s2) -> s2
+"a7"(s2) -> s1
+"a15"(s2) -> s2
+"a1"(s3) -> s3
+"a9"(s3) -> s3
+"a10"(s3) -> s3
+"a3"(s3) -> s3
+"a11"(s3) -> s3
+"a12"(s3) -> s1
+"a7"(s3) -> s3
+"a8"(s3) -> s3
