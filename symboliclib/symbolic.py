@@ -193,12 +193,18 @@ class Symbolic(object):
                 # check if state leads to a final state
                 for label in self.transitions[state]:
                     for endstate in self.transitions[state][label]:
-                        if endstate in self.final:
+                        if self.is_final(endstate):
                             return False
                         if endstate not in checked and endstate not in queue:
                             queue.append(endstate)
 
         return True
+
+    def is_final(self,state):
+        if state in self.final:
+            return True
+        else:
+            return False
 
     def is_reachable(self, check):
         """
@@ -291,13 +297,20 @@ class Symbolic(object):
         # Automaton type
         export_str += "\n\nAutomaton A @" + self.automaton_type
         # States
+
         export_str += "\nStates "
         for state in sorted(self.states):
             export_str += state + " "
         # Final states
         export_str += "\nFinal States "
-        for state in sorted(self.final):
-            export_str += state + " "
+        if self.automaton_type == "GBA":
+            for set in self.final:
+                for state in set:
+                    export_str += state + " "
+                export_str += " ; "
+        else:
+            for state in sorted(self.final):
+                export_str += state + " "
         # Transitions
         export_str += "\nTransitions\n"
         for state in self.start:
@@ -439,8 +452,13 @@ class Symbolic(object):
             return "No states given."
         if not len(self.alphabet):
             return "Empty alphabet given."
-        if not self.final <= self.states:
-            return "F is not subset Q: Some of the final states are not in states."
+        if self.automaton_type == "GBA":
+            for set in self.final:
+                if not set <= self.states:
+                    return "F is not subset Q: Some of the final states are not in states."
+        else:
+            if not self.final <= self.states:
+                return "F is not subset Q: Some of the final states are not in states."
         if not self.start <= self.states:
             return "I is not subset Q: Some of the start states are not in states."
         for state in self.transitions:
@@ -462,3 +480,18 @@ class Symbolic(object):
         :return: empty object Symbolic
         """
         return Symbolic()
+
+    @staticmethod
+    def list_powerset(length):
+        """
+        Returns powerset of a list of given length
+        :param length: length
+        :return: list powerset
+        """
+        lst = []
+        for i in range(0, length):
+            lst.append(i)
+        result = [[]]
+        for x in lst:
+            result.extend([subset + [x] for subset in result])
+        return result

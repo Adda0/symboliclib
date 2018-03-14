@@ -834,7 +834,7 @@ class SA(Symbolic):
                 continue
 
             labels = list(self.transitions[state].keys())
-            combinations = list_powerset(len(labels))
+            combinations = self.list_powerset(len(labels))
             for com in combinations:
                 # get label combinations and endstates
                 end = set()
@@ -928,18 +928,3 @@ class SA(Symbolic):
             new_transitions[add] = [",".join(sorted(end))]
 
         return new_transitions
-
-
-def list_powerset(length):
-    """
-    Returns powerset of a list of given length
-    :param length: length
-    :return: list powerset
-    """
-    lst = []
-    for i in range(0, length):
-        lst.append(i)
-    result = [[]]
-    for x in lst:
-        result.extend([subset + [x] for subset in result])
-    return result

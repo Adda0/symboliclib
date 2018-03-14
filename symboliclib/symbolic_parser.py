@@ -7,6 +7,7 @@ from __future__ import print_function
 from sa import SA
 from lfa import LFA
 from st import ST
+from ba import BA
 from epsilon import Epsilon
 
 
@@ -90,6 +91,10 @@ def parse(testfile):
                         from transducer_predicate import parsePredicate
                         from transducer_predicate import TransPred
                         label = TransPred()
+                    elif automaton_type == "GBA":
+                        from letter_parser import parsePredicate
+                        from letter import Letter
+                        label = Letter()
                 else:
                     automaton_type = "LFA"
                     from letter_parser import parsePredicate
@@ -105,10 +110,22 @@ def parse(testfile):
                 continue
 
             if line.startswith("Final States"):
-                for element in line.split(" ")[2:]:
-                    if not element.isspace():
-                        element = element.strip()
-                        final.add(element)
+                if automaton_type == "GBA":
+                    line = line[12:]
+                    final = []
+                    for element in line.split(";"):
+                        new_set = set()
+                        for st in element.split(" "):
+                            if not st.isspace() and len(st):
+                                st = st.strip()
+                                new_set.add(st)
+                        if len(new_set):
+                            final.append(new_set)
+                else:
+                    for element in line.split(" ")[2:]:
+                        if not element.isspace():
+                            element = element.strip()
+                            final.add(element)
                 continue
 
             if line.startswith("Transitions"):
@@ -136,7 +153,7 @@ def parse(testfile):
         print("ERROR: " + testfile + " : " + check_result)
         exit(-1)
 
-    if automaton.is_epsilon_free:
+    if automaton.is_epsilon_free and automaton_type != "GBA":
         automaton = automaton.simple_reduce()
 
     return automaton
@@ -152,4 +169,5 @@ def type_to_class(type_name):
         "INFA": SA(),
         "LFA": LFA(),
         "INT": ST(),
+        "GBA": BA(),
     }[type_name]
