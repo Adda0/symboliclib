@@ -1,0 +1,36 @@
+Ops a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 a22 a23 
+
+Automaton A @GBA 
+States s0 s1 s2 s3 s4 s5 s6 s7 
+Final States  s3 
+Transitions
+x -> s1
+"a18"(s0) -> s2
+"a1"(s1) -> s1
+"a3"(s1) -> s4
+"a19"(s2) -> s6
+"a20"(s2) -> s5
+"a17"(s3) -> s0
+"a23"(s3) -> s6
+"a2"(s4) -> s4
+"a4"(s4) -> s4
+"a5"(s4) -> s4
+"a6"(s4) -> s4
+"a8"(s4) -> s4
+"a10"(s4) -> s4
+"a14"(s4) -> s4
+"a15"(s4) -> s4
+"a16"(s4) -> s3
+"a16"(s4) -> s4
+"a17"(s4) -> s4
+"a18"(s4) -> s4
+"a19"(s4) -> s4
+"a20"(s4) -> s4
+"a21"(s4) -> s4
+"a22"(s4) -> s4
+"a23"(s4) -> s4
+"a21"(s5) -> s7
+"a2"(s6) -> s6
+"a16"(s6) -> s6
+"a17"(s6) -> s0
+"a22"(s7) -> s3
