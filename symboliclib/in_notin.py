@@ -35,6 +35,9 @@ class InNotin(PredicateInterface):
     def __hash__(self):
         return hash((self.type, str(sorted(self.symbols))))
 
+    def __lt__(self, other):
+        return str(self) < str(other)
+
     @abc.abstractmethod
     def negation(self):
         """

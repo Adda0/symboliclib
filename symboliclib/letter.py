@@ -34,6 +34,9 @@ class Letter(PredicateInterface):
     def __hash__(self):
         return hash(self.symbol)
 
+    def __lt__(self, other):
+        return str(self) < str(other)
+
     @abc.abstractmethod
     def negation(self):
         """

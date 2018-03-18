@@ -318,7 +318,7 @@ class Symbolic(object):
             export_str += "x -> " + state + "\n"
         for trans_group in sorted(self.transitions):
             start_state = trans_group
-            for trans_label in self.transitions[trans_group]:
+            for trans_label in sorted(self.transitions[trans_group]):
                 for trans_end in self.transitions[trans_group][trans_label]:
                     end_state = trans_end
                     if self.automaton_type == "LFA":
@@ -408,11 +408,7 @@ class Symbolic(object):
         for q in other.states:
             uni.states.add(q + "_2")
 
-        uni.final = set()
-        for q in self.final:
-            uni.final.add(q + "_1")
-        for q in other.final:
-            uni.final.add(q + "_2")
+        self.get_final_union(other, uni)
 
         for state in self.transitions:
             state_str = state + "_1"
@@ -433,6 +429,13 @@ class Symbolic(object):
         uni.simple_reduce()
 
         return uni
+
+    def get_final_union(self, other, uni):
+        uni.final = set()
+        for q in self.final:
+            uni.final.add(q + "_1")
+        for q in other.final:
+            uni.final.add(q + "_2")
 
     def check_automaton(self):
         """

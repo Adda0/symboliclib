@@ -31,3 +31,6 @@ class Epsilon:
 
     def __hash__(self):
         return hash(self.is_epsilon)
+
+    def __lt__(self, other):
+        return str(self) < str(other)
