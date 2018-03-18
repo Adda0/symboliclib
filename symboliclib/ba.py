@@ -172,10 +172,10 @@ class BA(LFA):
         self.split_components()
 
         # prepare first ncsb set
-        n = deepcopy(self.start)
-        c = set()
+        n = self.start.intersection(self.q1)
+        c = self.start.intersection(self.q2)
         s = set()
-        b = set()
+        b = self.start.intersection(self.q2)
         queue = list()
         start_set = {"n": n, "c": c, "s": s, "b": b}
         queue.append(start_set)
@@ -186,7 +186,8 @@ class BA(LFA):
         complement.alphabet = deepcopy(self.alphabet)
         complement.start.add(self.get_text_label(start_set))
         complement.final.append(set())
-        complement.final[0].add(self.get_text_label(start_set))
+        if b == set():
+            complement.final[0].add(self.get_text_label(start_set))
 
         # loop through reached ncsb sets
         while len(queue):
@@ -293,10 +294,10 @@ class BA(LFA):
         self = self.get_complete()
         complete = True
         # prepare first ncsb set
-        n = deepcopy(self.start)
-        c = set()
+        n = self.start - self.final
+        c = self.start.intersection(self.final)
         s = set()
-        b = set()
+        b = self.start.intersection(self.final)
         queue = list()
         start_set = {"n": n, "c": c, "s": s, "b": b}
         queue.append(start_set)
@@ -307,7 +308,8 @@ class BA(LFA):
         complement.alphabet = deepcopy(self.alphabet)
         complement.start.add(self.get_text_label(start_set))
         complement.final.append(set())
-        complement.final[0].add(self.get_text_label(start_set))
+        if b == set():
+            complement.final[0].add(self.get_text_label(start_set))
 
         # loop through reached ncsb sets
         while len(queue):
@@ -410,10 +412,10 @@ class BA(LFA):
         self.split_components()
 
         # prepare first ncsb set
-        n = deepcopy(self.start)
-        c = set()
+        n = self.start.intersection(self.q1)
+        c = self.start.intersection(self.q2)
         s = set()
-        b = set()
+        b = self.start.intersection(self.q2)
         queue = list()
         start_set = {"n": n, "c": c, "s": s, "b": b}
         queue.append(start_set)
@@ -424,7 +426,8 @@ class BA(LFA):
         complement.alphabet = deepcopy(self.alphabet)
         complement.start.add(self.get_text_label(start_set))
         complement.final.append(set())
-        complement.final[0].add(self.get_text_label(start_set))
+        if b == set():
+            complement.final[0].add(self.get_text_label(start_set))
 
         # loop through reached ncsb sets
         while len(queue):
