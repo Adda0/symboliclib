@@ -170,6 +170,7 @@ class BA(LFA):
 
         # split automaton compoments to Q1, Q2, delta1, delta2, delta_t
         self.split_components()
+        self.fix_final_states()
 
         # prepare first ncsb set
         n = self.start.intersection(self.q1)
@@ -401,7 +402,6 @@ class BA(LFA):
         """
         Semideterministic buchi automaton complementation
         Algorithm NCSB lazy
-        Algorithm can be found here: https://www.fi.muni.cz/~xstrejc/publications/tacas2016coSDBA_preprint.pdf
         :return: complement
         """
         # make automaton complete
@@ -410,6 +410,7 @@ class BA(LFA):
 
         # split automaton compoments to Q1, Q2, delta1, delta2, delta_t
         self.split_components()
+        self.fix_final_states()
 
         # prepare first ncsb set
         n = self.start.intersection(self.q1)
@@ -584,6 +585,123 @@ class BA(LFA):
 
         return complement
 
+    def complement_ncsb_early_flush(self):
+        """
+        Buchi semideterministic automaton complementation
+        Using NCSB algorithm with early flush modification
+        :return: complement
+        """
+        # make automaton complete
+        self = self.get_complete()
+        complete = True
+
+        # split automaton compoments to Q1, Q2, delta1, delta2, delta_t
+        self.split_components()
+        self.fix_final_states()
+
+        # prepare first ncsb set
+        n = self.start.intersection(self.q1)
+        c = self.start.intersection(self.q2)
+        s = set()
+        b = self.start.intersection(self.q2)
+        f = False   # tells if the state is final
+        queue = list()
+        start_set = {"n": n, "c": c, "s": s, "b": b, "f": f}
+        queue.append(start_set)
+        done = set()
+
+        # prepare complements
+        complement = BA()
+        complement.alphabet = deepcopy(self.alphabet)
+        complement.start.add(self.get_text_label_early_flush(start_set))
+        complement.final.append(set())
+
+        # loop through reached ncsb sets
+        while len(queue):
+            state_set = queue.pop()
+            text = self.get_text_label_early_flush(state_set)
+            if text in done:
+                continue
+            done.add(text)
+
+            complement.states.add(text)
+
+            for symbol in self.alphabet:
+                n2 = set()
+                c2 = set()
+                s2 = set()
+                b2 = set()
+                possible_s = set()
+                block = False
+
+                # N2 = delta1(N,a)
+                n2 = self.post(self.delta1, state_set["n"], symbol)
+                # C2 >= delta_t(N,a)
+                c2 = self.post(self.deltat, state_set["n"], symbol)
+
+                # C2 <= delta(N,a) U (delta(N,a) ^ F)
+                # possible_s - states that can be transferred to S, or can stay in C, to be decided later
+                for state in state_set["c"]:
+                    ss = set()
+                    ss.add(state)
+                    post_c = self.post(self.delta2, ss, symbol)
+                    for endstate in post_c:
+                        if self.is_final(state) and not self.is_final(endstate):
+                            possible_s.add(endstate)
+                        else:
+                            c2.add(endstate)
+
+                # S >= delta(S,a)
+                post_s = self.post(self.delta2, state_set["s"], symbol)
+                for endstate in post_s:
+                    if not self.is_final(endstate):
+                        if endstate in c2:
+                            c2.remove(endstate)
+                            possible_s.add(endstate)
+                        else:
+                            s2.add(endstate)
+                    else:
+                        # if a state reached in S is final, this branch is blocked
+                        block = True
+
+                if not block:
+                    # decide which states stay in S and which in C
+                    if len(possible_s):
+                        posibilities = self.powerset(possible_s)
+                        # generate all possible combinations
+                        for comb in posibilities:
+                            ps = set()
+                            for c in comb:
+                                ps.add(c)
+
+                            possible_c = c2 - ps
+                            possible_s = s2.union(ps)
+
+                            # a run can be safe or unsafe, not both
+                            if len(possible_c.intersection(possible_s)) == 0:
+                                # if automaton is complete, state ({},{},{},{}) is not possible
+                                if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
+                                    new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
+                                    self.add_transitions_generate_b_early_flush(complement, self.delta2, queue, done, new_set, b, state_set, symbol)
+
+                            possible_c = c2.union(ps)
+                            possible_s = s2
+                            b2 = set()
+                            # a run can be safe or unsafe, not both
+                            if len(possible_c.intersection(possible_s)) == 0:
+                                # if automaton is complete, state ({},{},{},{}) is not possible
+                                if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
+                                    new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
+                                    self.add_transitions_generate_b_early_flush(complement, self.delta2, queue, done, new_set, b, state_set, symbol)
+
+                    else:
+                        # if automaton is complete, state ({},{},{},{}) is not possible
+                        if not complete or (len(n2) or len(c2) or len(s2) or len(b2)):
+                            self.add_transitions_generate_b_early_flush(complement, self.delta2, queue, done, {"n": n2, "c": c2, "s": s2, "b": b2},
+                                                     b, state_set, symbol)
+
+        return complement
+
     def add_transitions_generate_b(self, complement, trans, queue, done, new_set, b, state_set, symbol):
         if len(b) > 0:
             post_b = self.post(trans, state_set["b"], symbol)
@@ -604,7 +722,27 @@ class BA(LFA):
         if new_text not in done and new_set not in queue:
             queue.append(new_set)
 
+    def add_transitions_generate_b_early_flush(self, complement, trans, queue, done, new_set, b, state_set, symbol):
+        alfa = set()
+        post_b = self.post(trans, state_set["b"], symbol)
+        for endstate in post_b:
+            if endstate in new_set["c"]:
+                alfa.add(endstate)
 
+        if len(alfa):
+            new_set["b"] = alfa
+            new_set["f"] = False
+        else:
+            new_set["b"] = deepcopy(new_set["c"])
+            new_set["f"] = True
+
+        text = self.get_text_label_early_flush(state_set)
+        new_text = self.get_text_label_early_flush(new_set)
+        complement.transitions = self.add_trans(complement.transitions, text, symbol, new_text)
+        if new_set["f"]:
+            complement.final[0].add(new_text)
+        if new_text not in done and new_set not in queue:
+            queue.append(new_set)
 
     @staticmethod
     def add_trans(transitions, text, symbol, new_text):
@@ -626,6 +764,20 @@ class BA(LFA):
                 ",".join(sorted(state_set["c"])) + "},{" +
                 ",".join(sorted(state_set["s"])) + "},{" +
                 ",".join(sorted(state_set["b"])) + "})")
+        return text
+
+    @staticmethod
+    def get_text_label_early_flush(state_set):
+        if state_set["f"]:
+            text = ("({" + ",".join(sorted(state_set["n"])) + "},{" +
+                    ",".join(sorted(state_set["c"])) + "},{" +
+                    ",".join(sorted(state_set["s"])) + "},{" +
+                    ",".join(sorted(state_set["b"])) + "},T)")
+        else:
+            text = ("({" + ",".join(sorted(state_set["n"])) + "},{" +
+                    ",".join(sorted(state_set["c"])) + "},{" +
+                    ",".join(sorted(state_set["s"])) + "},{" +
+                    ",".join(sorted(state_set["b"])) + "},F)")
         return text
 
     @staticmethod
