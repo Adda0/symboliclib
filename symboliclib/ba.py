@@ -558,6 +558,7 @@ class BA(LFA):
                     if len(possible_bs):
                         # generate all possible combinations
                         posibilities = self.powerset(possible_bs)
+                        original_c = deepcopy(c2)
                         for comb in posibilities:
                             ps = set()
                             for c in comb:
@@ -567,7 +568,7 @@ class BA(LFA):
                             possible_s = s2.union(ps)
                             # if automaton is complete, state ({},{},{},{}) is not possible
                             if not complete or (len(n2) or len(c2) or len(possible_s) or len(possible_b)):
-                                new_set = {"n": n2, "c": c2, "s": possible_s, "b": possible_b}
+                                new_set = {"n": n2, "c": original_c - possible_s, "s": possible_s, "b": possible_b}
                                 self.add_transition(complement, state_set, symbol, new_set, queue, done)
 
                             possible_b = b2.union(ps)
@@ -575,7 +576,7 @@ class BA(LFA):
                             b2 = set()
                             # if automaton is complete, state ({},{},{},{}) is not possible
                             if not complete or (len(n2) or len(c2) or len(possible_s) or len(possible_b)):
-                                new_set = {"n": n2, "c": c2, "s": possible_s, "b": possible_b}
+                                new_set = {"n": n2, "c": original_c - possible_s, "s": possible_s, "b": possible_b}
                                 self.add_transition(complement, state_set, symbol, new_set, queue, done)
 
                     else:
