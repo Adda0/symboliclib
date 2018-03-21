@@ -230,8 +230,9 @@ class BA(LFA):
                 for endstate in post_s:
                     if not self.is_final(endstate):
                         if endstate in c2:
-                            c2.remove(endstate)
-                            possible_s.add(endstate)
+                            # C >= delta2(C,a), S >= delta2(S,a), S ^ C = {}
+                            # => wrong branch, blocked
+                            block = True
                         else:
                             s2.add(endstate)
                     else:
@@ -354,8 +355,9 @@ class BA(LFA):
                 for endstate in post_s:
                     if not self.is_final(endstate):
                         if endstate in c2:
-                            c2.remove(endstate)
-                            possible_s.add(endstate)
+                            # C >= delta2(C,a), S >= delta2(S,a), S ^ C = {}
+                            # => wrong branch, blocked
+                            block = True
                         else:
                             s2.add(endstate)
                     # if a state reached in S is final, this branch is blocked
@@ -475,8 +477,9 @@ class BA(LFA):
                     for endstate in post_s:
                         if not self.is_final(endstate):
                             if endstate in c2:
-                                c2.remove(endstate)
-                                possible_s.add(endstate)
+                                # C >= delta2(C,a), S >= delta2(S,a), S ^ C = {}
+                                # => wrong branch, blocked
+                                block = True
                             else:
                                 s2.add(endstate)
                         else:
@@ -657,8 +660,9 @@ class BA(LFA):
                 for endstate in post_s:
                     if not self.is_final(endstate):
                         if endstate in c2:
-                            c2.remove(endstate)
-                            possible_s.add(endstate)
+                            # C >= delta2(C,a), S >= delta2(S,a), S ^ C = {}
+                            # => wrong branch, blocked
+                            block = True
                         else:
                             s2.add(endstate)
                     else:
