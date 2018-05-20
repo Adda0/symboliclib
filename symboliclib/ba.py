@@ -165,12 +165,13 @@ class BA(LFA):
         :return: complement
         """
         # make automaton complete
-        self = self.get_complete()
-        complete = True
+        #self = self.get_complete()
+        #complete = True
+        complete = False
 
         # split automaton compoments to Q1, Q2, delta1, delta2, delta_t
         self.split_components()
-        self.fix_final_states()
+        #self.fix_final_states()
 
         # prepare first ncsb set
         n = self.start.intersection(self.q1)
@@ -253,7 +254,8 @@ class BA(LFA):
                             possible_s = s2.union(ps)
 
                             # a run can be safe or unsafe, not both
-                            if len(possible_c.intersection(possible_s)) == 0:
+                            # and we cant make c={} and s={}
+                            if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
                                 # if automaton is complete, state ({},{},{},{}) is not possible
                                 if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
                                     new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
@@ -263,7 +265,8 @@ class BA(LFA):
                             possible_s = s2
                             b2 = set()
                             # a run can be safe or unsafe, not both
-                            if len(possible_c.intersection(possible_s)) == 0:
+                            # and we cant make c={} and s={}
+                            if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
                                 # if automaton is complete, state ({},{},{},{}) is not possible
                                 if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
                                     new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
@@ -293,8 +296,9 @@ class BA(LFA):
         :return: complement
         """
         # make automaton complete
-        self = self.get_complete()
-        complete = True
+        # self = self.get_complete()
+        # complete = True
+        complete = False
         # prepare first ncsb set
         n = self.start - self.final
         c = self.start.intersection(self.final)
@@ -377,7 +381,8 @@ class BA(LFA):
                             possible_c = c2 - ps
                             possible_s = s2.union(ps)
                             # a run can be safe or unsafe, not both
-                            if len(possible_c.intersection(possible_s)) == 0:
+                            # and we cant make c={} and s={}
+                            if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
                                 # if automaton is complete, state ({},{},{},{}) is not possible
                                 if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
                                     new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
@@ -387,7 +392,8 @@ class BA(LFA):
                             possible_s = s2
                             b2 = set()
                             # a run can be safe or unsafe, not both
-                            if len(possible_c.intersection(possible_s)) == 0:
+                            # and we cant make c={} and s={}
+                            if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
                                 # if automaton is complete, state ({},{},{},{}) is not possible
                                 if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
                                     new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
@@ -407,8 +413,9 @@ class BA(LFA):
         :return: complement
         """
         # make automaton complete
-        self = self.get_complete()
-        complete = True
+        # self = self.get_complete()
+        # complete = True
+        complete = False
 
         # split automaton compoments to Q1, Q2, delta1, delta2, delta_t
         self.split_components()
@@ -499,7 +506,8 @@ class BA(LFA):
                                 possible_s = s2.union(ps)
 
                                 # a run can be safe or unsafe, not both
-                                if len(possible_c.intersection(possible_s)) == 0:
+                                # and we cant make c={} and s={}
+                                if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
                                     # if automaton is complete, state ({},{},{},{}) is not possible
                                     if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
                                         new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
@@ -509,7 +517,8 @@ class BA(LFA):
                                 possible_s = s2
                                 b2 = set()
                                 # a run can be safe or unsafe, not both
-                                if len(possible_c.intersection(possible_s)) == 0:
+                                # and we cant make c={} and s={}
+                                if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
                                     # if automaton is complete, state ({},{},{},{}) is not possible
                                     if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
                                         new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
@@ -569,18 +578,23 @@ class BA(LFA):
 
                             possible_b = b2 - ps
                             possible_s = s2.union(ps)
-                            # if automaton is complete, state ({},{},{},{}) is not possible
-                            if not complete or (len(n2) or len(c2) or len(possible_s) or len(possible_b)):
-                                new_set = {"n": n2, "c": original_c - possible_s, "s": possible_s, "b": possible_b}
-                                self.add_transition(complement, state_set, symbol, new_set, queue, done)
+
+                            #cannot generate both b and s empty
+                            if len(possible_b) or len(possible_s):
+                                # if automaton is complete, state ({},{},{},{}) is not possible
+                                if not complete or (len(n2) or len(c2) or len(possible_s) or len(possible_b)):
+                                    new_set = {"n": n2, "c": original_c - possible_s, "s": possible_s, "b": possible_b}
+                                    self.add_transition(complement, state_set, symbol, new_set, queue, done)
 
                             possible_b = b2.union(ps)
                             possible_s = s2
                             b2 = set()
-                            # if automaton is complete, state ({},{},{},{}) is not possible
-                            if not complete or (len(n2) or len(c2) or len(possible_s) or len(possible_b)):
-                                new_set = {"n": n2, "c": original_c - possible_s, "s": possible_s, "b": possible_b}
-                                self.add_transition(complement, state_set, symbol, new_set, queue, done)
+                            # cannot generate both b and s empty
+                            if len(possible_b) or len(possible_s):
+                                # if automaton is complete, state ({},{},{},{}) is not possible
+                                if not complete or (len(n2) or len(c2) or len(possible_s) or len(possible_b)):
+                                    new_set = {"n": n2, "c": original_c - possible_s, "s": possible_s, "b": possible_b}
+                                    self.add_transition(complement, state_set, symbol, new_set, queue, done)
 
                     else:
                         # if automaton is complete, state ({},{},{},{}) is not possible
@@ -596,8 +610,9 @@ class BA(LFA):
         :return: complement
         """
         # make automaton complete
-        self = self.get_complete()
-        complete = True
+        # self = self.get_complete()
+        # complete = True
+        complete = False
 
         # split automaton compoments to Q1, Q2, delta1, delta2, delta_t
         self.split_components()
@@ -683,7 +698,8 @@ class BA(LFA):
                             possible_s = s2.union(ps)
 
                             # a run can be safe or unsafe, not both
-                            if len(possible_c.intersection(possible_s)) == 0:
+                            # and we cant make c={} and s={}
+                            if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
                                 # if automaton is complete, state ({},{},{},{}) is not possible
                                 if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
                                     new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
@@ -693,7 +709,8 @@ class BA(LFA):
                             possible_s = s2
                             b2 = set()
                             # a run can be safe or unsafe, not both
-                            if len(possible_c.intersection(possible_s)) == 0:
+                            # and we cant make c={} and s={}
+                            if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
                                 # if automaton is complete, state ({},{},{},{}) is not possible
                                 if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
                                     new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
