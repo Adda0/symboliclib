@@ -158,127 +158,111 @@ class BA(LFA):
         print(self.delta2)
 
     def complement_ncsb(self):
-        """
-        Buchi semideterministic automaton complementation
-        Using NCSB algorithm
-        Algorithm can be found here: https://www.fi.muni.cz/~xstrejc/publications/tacas2016coSDBA_preprint.pdf
-        :return: complement
-        """
-        # make automaton complete
-        #self = self.get_complete()
-        #complete = True
-        complete = False
-
-        # split automaton compoments to Q1, Q2, delta1, delta2, delta_t
+        # get division to Qn,Qd, delta_n, delta_t, delta_d
         self.split_components()
-        #self.fix_final_states()
-
-        # prepare first ncsb set
-        n = self.start.intersection(self.q1)
-        c = self.start.intersection(self.q2)
-        s = set()
-        b = self.start.intersection(self.q2)
-        queue = list()
-        start_set = {"n": n, "c": c, "s": s, "b": b}
-        queue.append(start_set)
-        done = set()
-
-        # prepare complements
-        complement = BA()
+        self.final = self.final[0]
+        complement = self.get_new()
         complement.alphabet = deepcopy(self.alphabet)
-        complement.start.add(self.get_text_label(start_set))
-        complement.final.append(set())
-        if b == set():
-            complement.final[0].add(self.get_text_label(start_set))
 
-        # loop through reached ncsb sets
+        #get initial states
+        start_n = self.q1.intersection(self.start)
+        c_or_s = self.q2.intersection(self.start)
+        if len(c_or_s):
+            # @TODO !!!
+            start_c = c_or_s.intersection(self.final)
+            c_or_s = c_or_s - self.final
+            print(self.get_posibilities(c_or_s))
+        else:
+            start = self.get_ncsb(start_n, set(), set(), set())
+            complement.start.add(self.get_text_label(start))
+
+        queue = []
+        queue.append(start)
+        done = []
+
         while len(queue):
             state_set = queue.pop()
-            text = self.get_text_label(state_set)
-            if text in done:
-                continue
-            done.add(text)
+            done.append(state_set)
 
-            complement.states.add(text)
+            if state_set["s"].intersection(self.final):
+                # Block if a final state is in S
+                continue
+            if state_set["s"].intersection(state_set["c"]):
+                # block if S and C have common state
+                continue
+
+            # add to states and final
+            label = self.get_text_label(state_set)
+            if label not in complement.states:
+                complement.states.add(label)
+            if not len(state_set["b"]) and label not in complement.final:
+                complement.final.append(label)
 
             for symbol in self.alphabet:
-                n2 = set()
-                c2 = set()
-                s2 = set()
-                b2 = set()
-                possible_s = set()
+                # check if every state from C-F has an successor
                 block = False
-
-                # N2 = delta1(N,a)
-                n2 = self.post(self.delta1, state_set["n"], symbol)
-                # C2 >= delta_t(N,a)
-                c2 = self.post(self.deltat, state_set["n"], symbol)
-
-                # C2 <= delta(N,a) U (delta(N,a) ^ F)
-                # possible_s - states that can be transferred to S, or can stay in C, to be decided later
-                for state in state_set["c"]:
-                    ss = set()
-                    ss.add(state)
-                    post_c = self.post(self.delta2, ss, symbol)
-                    for endstate in post_c:
-                        if self.is_final(state) and not self.is_final(endstate):
-                            possible_s.add(endstate)
-                        else:
-                            c2.add(endstate)
-
-                # S >= delta(S,a)
-                post_s = self.post(self.delta2, state_set["s"], symbol)
-                for endstate in post_s:
-                    if not self.is_final(endstate):
-                        if endstate in c2:
-                            # C >= delta2(C,a), S >= delta2(S,a), S ^ C = {}
-                            # => wrong branch, blocked
-                            block = True
-                        else:
-                            s2.add(endstate)
-                    else:
-                        # if a state reached in S is final, this branch is blocked
+                check_block = state_set["c"] - self.final
+                for block_state in check_block:
+                    if block_state not in self.transitions or symbol not in self.transitions[block_state]:
                         block = True
+                        break
+                if block:
+                    # Blocking because of C-F succesors
+                    continue
 
-                if not block:
-                    # decide which states stay in S and which in C
-                    if len(possible_s):
-                        posibilities = self.powerset(possible_s)
-                        # generate all possible combinations
-                        for comb in posibilities:
-                            ps = set()
-                            for c in comb:
-                                ps.add(c)
+                # compute N', C', S'
+                new_n = self.post(self.delta1, state_set["n"], symbol)
+                new_s = self.post(self.delta2, state_set["s"], symbol)
+                if new_s.intersection(self.final):
+                    # Blocking because S has final successor
+                    continue
+                new_c = self.post(self.delta2, state_set["c"] - self.final, symbol)
+                if new_s.intersection(new_c):
+                    # "Blocking because S has common successor with C
+                    continue
 
-                            possible_c = c2 - ps
-                            possible_s = s2.union(ps)
+                # compute states which can be in both S and C, to decide later
+                c_or_s = self.post(self.deltat, state_set["n"], symbol).union(
+                    self.post(self.delta2, state_set["c"].intersection(self.final), symbol))
+                # remove final states - they must do in C
+                new_c = new_c.union(c_or_s.intersection(self.final))
+                c_or_s = c_or_s - self.final
 
-                            # a run can be safe or unsafe, not both
-                            # and we cant make c={} and s={}
-                            if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
-                                # if automaton is complete, state ({},{},{},{}) is not possible
-                                if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
-                                    new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
-                                    self.add_transitions_generate_b(complement, self.delta2, queue, done, new_set, b, state_set, symbol)
+                if len(c_or_s):
+                    # generate all possible C'/S' combinations
+                    posibilities = self.get_posibilities(c_or_s)
+                    for pos in posibilities:
+                        new_new_c = new_c.union(pos[0])
+                        new_new_s = new_s.union(pos[1])
 
-                            possible_c = c2.union(ps)
-                            possible_s = s2
-                            b2 = set()
-                            # a run can be safe or unsafe, not both
-                            # and we cant make c={} and s={}
-                            if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
-                                # if automaton is complete, state ({},{},{},{}) is not possible
-                                if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
-                                    new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
-                                    self.add_transitions_generate_b(complement, self.delta2, queue, done, new_set, b, state_set, symbol)
-
+                        if len(state_set["b"]):
+                            new_b = self.post(self.delta2, state_set["b"], symbol).intersection(new_new_c)
+                        else:
+                            new_b = deepcopy(new_new_c)
+                        new_state = self.get_ncsb(new_n, new_new_c, new_new_s, new_b)
+                        new_label = self.get_text_label(new_state)
+                        complement.transitions = self.add_trans(complement.transitions, label, symbol, new_label)
+                        # save for later processing
+                        if new_state not in queue and new_state not in done:
+                            queue.append(new_state)
+                else:
+                    # no C'/S' nondeterminism, just add new state
+                    if len(state_set["b"]):
+                        new_b = self.post(self.delta2, state_set["b"], symbol).intersection(new_c)
                     else:
-                        # if automaton is complete, state ({},{},{},{}) is not possible
-                        if not complete or (len(n2) or len(c2) or len(s2) or len(b2)):
-                            self.add_transitions_generate_b(complement, self.delta2, queue, done, {"n": n2, "c": c2, "s": s2, "b": b2},
-                                                     b, state_set, symbol)
+                        new_b = deepcopy(new_c)
+                    new_state = self.get_ncsb(new_n, new_c, new_s, new_b)
+                    new_label = self.get_text_label(new_state)
+                    complement.transitions = self.add_trans(complement.transitions, label, symbol, new_label)
+                    # save for later processing
+                    if new_state not in queue and new_state not in done:
+                        queue.append(new_state)
 
         return complement
+
+    @staticmethod
+    def get_ncsb(n, c, s, b):
+        return {"n": n, "c": c, "s": s, "b": b}
 
     def post(self, transitions, state_set, symbol):
         post = set()
@@ -289,482 +273,26 @@ class BA(LFA):
                         post.add(endstate)
         return post
 
-    def complement_ncsb_onthefly(self):
-        """
-        On the fly semideterministic buchi automaton complementation
-        Algorithm can be found here: https://www.fi.muni.cz/~xstrejc/publications/tacas2016coSDBA_preprint.pdf
-        :return: complement
-        """
-        # make automaton complete
-        # self = self.get_complete()
-        # complete = True
-        complete = False
-        # prepare first ncsb set
-        n = self.start - self.final
-        c = self.start.intersection(self.final)
-        s = set()
-        b = self.start.intersection(self.final)
-        queue = list()
-        start_set = {"n": n, "c": c, "s": s, "b": b}
-        queue.append(start_set)
-        done = set()
+    @staticmethod
+    def get_text_label(state_set):
+        text = ("({" + ",".join(sorted(state_set["n"])) + "},{" +
+                ",".join(sorted(state_set["c"])) + "},{" +
+                ",".join(sorted(state_set["s"])) + "},{" +
+                ",".join(sorted(state_set["b"])) + "})")
+        return text
 
-        # prepare complement
-        complement = BA()
-        complement.alphabet = deepcopy(self.alphabet)
-        complement.start.add(self.get_text_label(start_set))
-        complement.final.append(set())
-        if b == set():
-            complement.final[0].add(self.get_text_label(start_set))
-
-        # loop through reached ncsb sets
-        while len(queue):
-            state_set = queue.pop()
-            text = self.get_text_label(state_set)
-            if text in done:
-                continue
-            done.add(text)
-
-            complement.states.add(text)
-
-            for symbol in self.alphabet:
-                n2 = set()
-                c2 = set()
-                s2 = set()
-                b2 = set()
-                possible_s = set()
-                block = False
-                # N2 = delta(N,a)-F ; C2 <= delta(C,a) U (delta(N,a) ^ F)
-                post_n = self.post(self.transitions, state_set["n"], symbol)
-                for endstate in post_n:
-                    if self.is_final(endstate):
-                        c2.add(endstate)
-                    else:
-                        n2.add(endstate)
-
-                # C2 <= delta(C,a) U (delta(N,a) ^ F)
-                # possible_s - states that can be transferred to S, or can stay in C, to be decided later
-                for state in state_set["c"]:
-                    ss = set()
-                    ss.add(state)
-                    post_c = self.post(self.transitions, ss, symbol)
-                    for endstate in post_c:
-                        if self.is_final(state) and not self.is_final(endstate):
-                            possible_s.add(endstate)
-                        else:
-                            c2.add(endstate)
-
-                # S >= delta(S,a)
-                post_s = self.post(self.transitions, state_set["s"], symbol)
-                for endstate in post_s:
-                    if not self.is_final(endstate):
-                        if endstate in c2:
-                            # C >= delta2(C,a), S >= delta2(S,a), S ^ C = {}
-                            # => wrong branch, blocked
-                            block = True
-                        else:
-                            s2.add(endstate)
-                    # if a state reached in S is final, this branch is blocked
-                    else:
-                        block = True
-
-                if not block:
-                # decide which states stay in S and which in C
-                    if len(possible_s):
-                        posibilities = self.powerset(possible_s)
-                        # generate all possible combinations
-                        for comb in posibilities:
-                            ps = set()
-                            for c in comb:
-                                ps.add(c)
-
-                            possible_c = c2 - ps
-                            possible_s = s2.union(ps)
-                            # a run can be safe or unsafe, not both
-                            # and we cant make c={} and s={}
-                            if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
-                                # if automaton is complete, state ({},{},{},{}) is not possible
-                                if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
-                                    new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
-                                    self.add_transitions_generate_b(complement, self.transitions, queue, done, new_set, b, state_set, symbol)
-
-                            possible_c = c2.union(ps)
-                            possible_s = s2
-                            b2 = set()
-                            # a run can be safe or unsafe, not both
-                            # and we cant make c={} and s={}
-                            if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
-                                # if automaton is complete, state ({},{},{},{}) is not possible
-                                if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
-                                    new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
-                                    self.add_transitions_generate_b(complement, self.transitions, queue, done, new_set, b, state_set, symbol)
-
-                    else:
-                        # if automaton is complete, state ({},{},{},{}) is not possible
-                            if not complete or (len(n2) or len(c2) or len(s2) or len(b2)):
-                                self.add_transitions_generate_b(complement, self.transitions, queue, done, {"n": n2, "c": c2, "s": s2, "b": b2}, b, state_set, symbol)
-
-        return complement
-
-    def complement_ncsb_lazy(self):
-        """
-        Semideterministic buchi automaton complementation
-        Algorithm NCSB lazy
-        :return: complement
-        """
-        # make automaton complete
-        # self = self.get_complete()
-        # complete = True
-        complete = False
-
-        # split automaton compoments to Q1, Q2, delta1, delta2, delta_t
-        self.split_components()
-        self.fix_final_states()
-
-        # prepare first ncsb set
-        n = self.start.intersection(self.q1)
-        c = self.start.intersection(self.q2)
-        s = set()
-        b = self.start.intersection(self.q2)
-        queue = list()
-        start_set = {"n": n, "c": c, "s": s, "b": b}
-        queue.append(start_set)
-        done = set()
-
-        # prepare complements
-        complement = BA()
-        complement.alphabet = deepcopy(self.alphabet)
-        complement.start.add(self.get_text_label(start_set))
-        complement.final.append(set())
-        if b == set():
-            complement.final[0].add(self.get_text_label(start_set))
-
-        # loop through reached ncsb sets
-        while len(queue):
-            state_set = queue.pop()
-            text = self.get_text_label(state_set)
-
-            if text in done:
-                continue
-
-            done.add(text)
-            complement.states.add(text)
-
-            n2 = set()
-            c2 = set()
-            s2 = set()
-            b2 = set()
-            possible_s = set()
-            possible_bs = set()
-            block = False
-
-
-            # B = {}
-            if state_set["b"] == set():
-                for symbol in self.alphabet:
-                    # N2 = delta1(N,a)
-                    n2 = self.post(self.delta1, state_set["n"], symbol)
-                    # C2 >= delta_t(N,a)
-                    c2 = self.post(self.deltat, state_set["n"], symbol)
-
-                    # C2 <= delta(N,a) U (delta(N,a) ^ F)
-                    # possible_s - states that can be transferred to S, or can stay in C, to be decided later
-                    for state in state_set["c"]:
-                        ss = set()
-                        ss.add(state)
-                        post_c = self.post(self.delta2, ss, symbol)
-                        for endstate in post_c:
-                            if self.is_final(state) and not self.is_final(endstate):
-                                possible_s.add(endstate)
-                            else:
-                                c2.add(endstate)
-
-                    # S >= delta(S,a)
-                    post_s = self.post(self.delta2, state_set["s"], symbol)
-                    for endstate in post_s:
-                        if not self.is_final(endstate):
-                            if endstate in c2:
-                                # C >= delta2(C,a), S >= delta2(S,a), S ^ C = {}
-                                # => wrong branch, blocked
-                                block = True
-                            else:
-                                s2.add(endstate)
-                        else:
-                            block = True
-
-                    if not block:
-                        # decide which states stay in S and which in C
-                        if len(possible_s):
-                            posibilities = self.powerset(possible_s)
-                            # generate all possible combinations
-                            for comb in posibilities:
-                                ps = set()
-                                for c in comb:
-                                    ps.add(c)
-
-                                possible_c = c2 - ps
-                                possible_s = s2.union(ps)
-
-                                # a run can be safe or unsafe, not both
-                                # and we cant make c={} and s={}
-                                if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
-                                    # if automaton is complete, state ({},{},{},{}) is not possible
-                                    if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
-                                        new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
-                                        self.add_transitions_generate_b(complement, self.delta2, queue, done, new_set, b, state_set, symbol)
-
-                                possible_c = c2.union(ps)
-                                possible_s = s2
-                                b2 = set()
-                                # a run can be safe or unsafe, not both
-                                # and we cant make c={} and s={}
-                                if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
-                                    # if automaton is complete, state ({},{},{},{}) is not possible
-                                    if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
-                                        new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
-                                        self.add_transitions_generate_b(complement, self.delta2, queue, done, new_set, b, state_set, symbol)
-
-                        else:
-                            # if automaton is complete, state ({},{},{},{}) is not possible
-                            if not complete or (len(n2) or len(c2) or len(s2) or len(b2)):
-                                self.add_transitions_generate_b(complement, self.delta2, queue, done, {"n": n2, "c": c2, "s": s2, "b": b2},
-                                                     b, state_set, symbol)
-            # B =/= {}
-            else:
-                for symbol in self.alphabet:
-                    # N2 = delta1(N,a)
-                    n2 = self.post(self.delta1, state_set["n"], symbol)
-                    # C2 >= delta_t(N,a)
-                    c2 = self.post(self.deltat, state_set["n"], symbol)
-
-                    # C2 >= delta_2(C,a)
-                    for state in state_set["c"]:
-                        ss = set()
-                        ss.add(state)
-                        post_c = self.post(self.delta2, ss, symbol)
-                        for endstate in post_c:
-                            c2.add(endstate)
-
-                    # S >= delta2(S,a)
-                    post_s = self.post(self.delta2, state_set["s"], symbol)
-                    for endstate in post_s:
-                        if not self.is_final(endstate):
-                            s2.add(endstate)
-                        else:
-                            # if a state reached in S is final, this branch is blocked
-                            block = True
-
-                    if block:
-                        continue
-
-                    # B >= delta2(B-F,a)
-                    b2 = self.post(self.delta2, state_set["b"] - self.final[0], symbol)
-                    # possible_bs - states that can be transferred to S, or can stay in B, to be decided later
-                    possible_bs = self.post(self.delta2, state_set["b"].intersection(self.final[0]), symbol)
-
-                    # no run can be in B and S at the same time -> block branch
-                    if len(b2.intersection(s2)):
-                        continue
-
-                    # decide which states stay in S and which in B
-                    if len(possible_bs):
-                        # generate all possible combinations
-                        posibilities = self.powerset(possible_bs)
-                        original_c = deepcopy(c2)
-                        for comb in posibilities:
-                            ps = set()
-                            for c in comb:
-                                ps.add(c)
-
-                            possible_b = b2 - ps
-                            possible_s = s2.union(ps)
-
-                            #cannot generate both b and s empty
-                            if len(possible_b) or len(possible_s):
-                                # if automaton is complete, state ({},{},{},{}) is not possible
-                                if not complete or (len(n2) or len(c2) or len(possible_s) or len(possible_b)):
-                                    new_set = {"n": n2, "c": original_c - possible_s, "s": possible_s, "b": possible_b}
-                                    self.add_transition(complement, state_set, symbol, new_set, queue, done)
-
-                            possible_b = b2.union(ps)
-                            possible_s = s2
-                            b2 = set()
-                            # cannot generate both b and s empty
-                            if len(possible_b) or len(possible_s):
-                                # if automaton is complete, state ({},{},{},{}) is not possible
-                                if not complete or (len(n2) or len(c2) or len(possible_s) or len(possible_b)):
-                                    new_set = {"n": n2, "c": original_c - possible_s, "s": possible_s, "b": possible_b}
-                                    self.add_transition(complement, state_set, symbol, new_set, queue, done)
-
-                    else:
-                        # if automaton is complete, state ({},{},{},{}) is not possible
-                        if not complete or (len(n2) or len(c2) or len(s2) or len(b2)):
-                            self.add_transition(complement, state_set, symbol, {"n": n2, "c": c2, "s": s2, "b": b2}, queue, done)
-
-        return complement
-
-    def complement_ncsb_early_flush(self):
-        """
-        Buchi semideterministic automaton complementation
-        Using NCSB algorithm with early flush modification
-        :return: complement
-        """
-        # make automaton complete
-        # self = self.get_complete()
-        # complete = True
-        complete = False
-
-        # split automaton compoments to Q1, Q2, delta1, delta2, delta_t
-        self.split_components()
-        self.fix_final_states()
-
-        # prepare first ncsb set
-        n = self.start.intersection(self.q1)
-        c = self.start.intersection(self.q2)
-        s = set()
-        b = self.start.intersection(self.q2)
-        f = False   # tells if the state is final
-        queue = list()
-        start_set = {"n": n, "c": c, "s": s, "b": b, "f": f}
-        queue.append(start_set)
-        done = set()
-
-        # prepare complements
-        complement = BA()
-        complement.alphabet = deepcopy(self.alphabet)
-        complement.start.add(self.get_text_label_early_flush(start_set))
-        complement.final.append(set())
-
-        # loop through reached ncsb sets
-        while len(queue):
-            state_set = queue.pop()
-            text = self.get_text_label_early_flush(state_set)
-            if text in done:
-                continue
-            done.add(text)
-
-            complement.states.add(text)
-
-            for symbol in self.alphabet:
-                n2 = set()
-                c2 = set()
-                s2 = set()
-                b2 = set()
-                possible_s = set()
-                block = False
-
-                # N2 = delta1(N,a)
-                n2 = self.post(self.delta1, state_set["n"], symbol)
-                # C2 >= delta_t(N,a)
-                c2 = self.post(self.deltat, state_set["n"], symbol)
-
-                # C2 <= delta(N,a) U (delta(N,a) ^ F)
-                # possible_s - states that can be transferred to S, or can stay in C, to be decided later
-                for state in state_set["c"]:
-                    ss = set()
-                    ss.add(state)
-                    post_c = self.post(self.delta2, ss, symbol)
-                    for endstate in post_c:
-                        if self.is_final(state) and not self.is_final(endstate):
-                            possible_s.add(endstate)
-                        else:
-                            c2.add(endstate)
-
-                # S >= delta(S,a)
-                post_s = self.post(self.delta2, state_set["s"], symbol)
-                for endstate in post_s:
-                    if not self.is_final(endstate):
-                        if endstate in c2:
-                            # C >= delta2(C,a), S >= delta2(S,a), S ^ C = {}
-                            # => wrong branch, blocked
-                            block = True
-                        else:
-                            s2.add(endstate)
-                    else:
-                        # if a state reached in S is final, this branch is blocked
-                        block = True
-
-                if not block:
-                    # decide which states stay in S and which in C
-                    if len(possible_s):
-                        posibilities = self.powerset(possible_s)
-                        # generate all possible combinations
-                        for comb in posibilities:
-                            ps = set()
-                            for c in comb:
-                                ps.add(c)
-
-                            possible_c = c2 - ps
-                            possible_s = s2.union(ps)
-
-                            # a run can be safe or unsafe, not both
-                            # and we cant make c={} and s={}
-                            if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
-                                # if automaton is complete, state ({},{},{},{}) is not possible
-                                if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
-                                    new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
-                                    self.add_transitions_generate_b_early_flush(complement, self.delta2, queue, done, new_set, b, state_set, symbol)
-
-                            possible_c = c2.union(ps)
-                            possible_s = s2
-                            b2 = set()
-                            # a run can be safe or unsafe, not both
-                            # and we cant make c={} and s={}
-                            if len(possible_c.intersection(possible_s)) == 0 and (len(possible_c) or len(possible_s)):
-                                # if automaton is complete, state ({},{},{},{}) is not possible
-                                if not complete or (len(n2) or len(possible_c) or len(possible_s) or len(b2)):
-                                    new_set = {"n": n2, "c": possible_c, "s": possible_s, "b": b2}
-                                    self.add_transitions_generate_b_early_flush(complement, self.delta2, queue, done, new_set, b, state_set, symbol)
-
-                    else:
-                        # if automaton is complete, state ({},{},{},{}) is not possible
-                        if not complete or (len(n2) or len(c2) or len(s2) or len(b2)):
-                            self.add_transitions_generate_b_early_flush(complement, self.delta2, queue, done, {"n": n2, "c": c2, "s": s2, "b": b2},
-                                                     b, state_set, symbol)
-
-        return complement
-
-    def add_transitions_generate_b(self, complement, trans, queue, done, new_set, b, state_set, symbol):
-        if len(b) > 0:
-            post_b = self.post(trans, state_set["b"], symbol)
-            for endstate in post_b:
-                if endstate in new_set["c"]:
-                    new_set["b"].add(endstate)
-        else:
-            new_set["b"] = deepcopy(new_set["c"])
-
-        self.add_transition(complement, state_set, symbol, new_set, queue, done)
-
-    def add_transition(self, complement, state_set, symbol, new_set, queue, done):
-        text = self.get_text_label(state_set)
-        new_text = self.get_text_label(new_set)
-        complement.transitions = self.add_trans(complement.transitions, text, symbol, new_text)
-        if len(new_set["b"]) == 0:
-            complement.final[0].add(new_text)
-        if new_text not in done and new_set not in queue:
-            queue.append(new_set)
-
-    def add_transitions_generate_b_early_flush(self, complement, trans, queue, done, new_set, b, state_set, symbol):
-        alfa = set()
-        post_b = self.post(trans, state_set["b"], symbol)
-        for endstate in post_b:
-            if endstate in new_set["c"]:
-                alfa.add(endstate)
-
-        if len(alfa):
-            new_set["b"] = alfa
-            new_set["f"] = False
-        else:
-            new_set["b"] = deepcopy(new_set["c"])
-            new_set["f"] = True
-
-        text = self.get_text_label_early_flush(state_set)
-        new_text = self.get_text_label_early_flush(new_set)
-        complement.transitions = self.add_trans(complement.transitions, text, symbol, new_text)
-        if new_set["f"]:
-            complement.final[0].add(new_text)
-        if new_text not in done and new_set not in queue:
-            queue.append(new_set)
+    def get_posibilities(self, state_set):
+        result = []
+        posibilities = self.powerset(state_set)
+        #print("get_posibilities")
+        for pos in posibilities:
+            one = set()
+            for p in pos:
+                one.add(p)
+            result.append((one, state_set - one))
+        #print("end")
+        #print(result)
+        return result
 
     @staticmethod
     def add_trans(transitions, text, symbol, new_text):
@@ -778,29 +306,9 @@ class BA(LFA):
             transitions[text] = {}
             transitions[text][symbol] = set()
             transitions[text][symbol].add(new_text)
+
+
         return transitions
-
-    @staticmethod
-    def get_text_label(state_set):
-        text = ("({" + ",".join(sorted(state_set["n"])) + "},{" +
-                ",".join(sorted(state_set["c"])) + "},{" +
-                ",".join(sorted(state_set["s"])) + "},{" +
-                ",".join(sorted(state_set["b"])) + "})")
-        return text
-
-    @staticmethod
-    def get_text_label_early_flush(state_set):
-        if state_set["f"]:
-            text = ("({" + ",".join(sorted(state_set["n"])) + "},{" +
-                    ",".join(sorted(state_set["c"])) + "},{" +
-                    ",".join(sorted(state_set["s"])) + "},{" +
-                    ",".join(sorted(state_set["b"])) + "},T)")
-        else:
-            text = ("({" + ",".join(sorted(state_set["n"])) + "},{" +
-                    ",".join(sorted(state_set["c"])) + "},{" +
-                    ",".join(sorted(state_set["s"])) + "},{" +
-                    ",".join(sorted(state_set["b"])) + "},F)")
-        return text
 
     @staticmethod
     def powerset(iterable):
