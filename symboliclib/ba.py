@@ -160,17 +160,18 @@ class BA(LFA):
     def complement_ncsb(self):
         # get division to Qn,Qd, delta_n, delta_t, delta_d
         self.split_components()
-        self.final = self.final[0]
+        final = self.final[0]
         complement = self.get_new()
         complement.alphabet = deepcopy(self.alphabet)
+        complement_final = set()
 
         #get initial states
         start_n = self.q1.intersection(self.start)
         c_or_s = self.q2.intersection(self.start)
         if len(c_or_s):
             # @TODO !!!
-            start_c = c_or_s.intersection(self.final)
-            c_or_s = c_or_s - self.final
+            start_c = c_or_s.intersection(final)
+            c_or_s = c_or_s - final
             print(self.get_posibilities(c_or_s))
         else:
             start = self.get_ncsb(start_n, set(), set(), set())
@@ -184,7 +185,7 @@ class BA(LFA):
             state_set = queue.pop()
             done.append(state_set)
 
-            if state_set["s"].intersection(self.final):
+            if state_set["s"].intersection(final):
                 # Block if a final state is in S
                 continue
             if state_set["s"].intersection(state_set["c"]):
@@ -195,13 +196,13 @@ class BA(LFA):
             label = self.get_text_label(state_set)
             if label not in complement.states:
                 complement.states.add(label)
-            if not len(state_set["b"]) and label not in complement.final:
-                complement.final.append(label)
+            if not len(state_set["b"]) and label not in complement_final:
+                complement_final.add(label)
 
             for symbol in self.alphabet:
                 # check if every state from C-F has an successor
                 block = False
-                check_block = state_set["c"] - self.final
+                check_block = state_set["c"] - final
                 for block_state in check_block:
                     if block_state not in self.transitions or symbol not in self.transitions[block_state]:
                         block = True
@@ -213,20 +214,20 @@ class BA(LFA):
                 # compute N', C', S'
                 new_n = self.post(self.delta1, state_set["n"], symbol)
                 new_s = self.post(self.delta2, state_set["s"], symbol)
-                if new_s.intersection(self.final):
+                if new_s.intersection(final):
                     # Blocking because S has final successor
                     continue
-                new_c = self.post(self.delta2, state_set["c"] - self.final, symbol)
+                new_c = self.post(self.delta2, state_set["c"] - final, symbol)
                 if new_s.intersection(new_c):
                     # "Blocking because S has common successor with C
                     continue
 
                 # compute states which can be in both S and C, to decide later
                 c_or_s = self.post(self.deltat, state_set["n"], symbol).union(
-                    self.post(self.delta2, state_set["c"].intersection(self.final), symbol))
+                    self.post(self.delta2, state_set["c"].intersection(final), symbol))
                 # remove final states - they must do in C
-                new_c = new_c.union(c_or_s.intersection(self.final))
-                c_or_s = c_or_s - self.final
+                new_c = new_c.union(c_or_s.intersection(final))
+                c_or_s = c_or_s - final
 
                 if len(c_or_s):
                     # generate all possible C'/S' combinations
@@ -257,6 +258,8 @@ class BA(LFA):
                     # save for later processing
                     if new_state not in queue and new_state not in done:
                         queue.append(new_state)
+
+        complement.final.append(complement_final)
 
         return complement
 
