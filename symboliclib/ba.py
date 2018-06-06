@@ -165,20 +165,26 @@ class BA(LFA):
         complement.alphabet = deepcopy(self.alphabet)
         complement_final = set()
 
-        #get initial states
+        # get initial states
+        queue = []
         start_n = self.q1.intersection(self.start)
-        c_or_s = self.q2.intersection(self.start)
-        if len(c_or_s):
-            # @TODO !!!
-            start_c = c_or_s.intersection(final)
-            c_or_s = c_or_s - final
-            print(self.get_posibilities(c_or_s))
+        c_or_s_start = self.q2.intersection(self.start)
+        if len(c_or_s_start):
+            start_c = c_or_s_start.intersection(final)
+            start_s = set()
+            c_or_s_start = c_or_s_start - final
+            sposibilities = self.get_posibilities(c_or_s_start)
+            for spos in sposibilities:
+                new_start_c = start_c.union(spos[0])
+                new_start_s = start_s.union(spos[1])
+                start = self.get_ncsb(start_n, new_start_c, new_start_s, deepcopy(new_start_c))
+                queue.append(start)
+                complement.start.add(self.get_text_label(start))
         else:
             start = self.get_ncsb(start_n, set(), set(), set())
             complement.start.add(self.get_text_label(start))
+            queue.append(start)
 
-        queue = []
-        queue.append(start)
         done = []
 
         while len(queue):
@@ -260,6 +266,7 @@ class BA(LFA):
                         queue.append(new_state)
 
         complement.final.append(complement_final)
+        complement = complement.clear_transitions()
 
         return complement
 
@@ -271,21 +278,29 @@ class BA(LFA):
         complement.alphabet = deepcopy(self.alphabet)
         complement_final = set()
 
-        #get initial states
+        # get initial states
+        queue = []
         start_n = self.q1.intersection(self.start)
-        c_or_s = self.q2.intersection(self.start)
-        if len(c_or_s):
-            # @TODO !!!
-            # alfa = true
-            start_c = c_or_s.intersection(final)
-            c_or_s = c_or_s - final
-            print(self.get_posibilities(c_or_s))
+        c_or_s_start = self.q2.intersection(self.start)
+        if len(c_or_s_start):
+            start_c = c_or_s_start.intersection(final)
+            start_s = set()
+            c_or_s_start = c_or_s_start - final
+            sposibilities = self.get_posibilities(c_or_s_start)
+            for spos in sposibilities:
+                new_start_c = start_c.union(spos[0])
+                new_start_s = start_s.union(spos[1])
+                if len(new_start_c):
+                    start = self.get_ncsba(start_n, new_start_c, new_start_s, deepcopy(new_start_c), False)
+                else:
+                    start = self.get_ncsba(start_n, new_start_c, new_start_s, deepcopy(new_start_c), True)
+                queue.append(start)
+                complement.start.add(self.get_text_label(start))
         else:
             start = self.get_ncsba(start_n, set(), set(), set(), True)
             complement.start.add(self.get_text_label(start))
+            queue.append(start)
 
-        queue = []
-        queue.append(start)
         done = []
 
         while len(queue):
@@ -374,8 +389,280 @@ class BA(LFA):
                         queue.append(new_state)
 
         complement.final.append(complement_final)
+        complement = complement.clear_transitions()
 
         return complement
+
+    def complement_ncsb_lazy(self):
+        # get division to Qn,Qd, delta_n, delta_t, delta_d
+        self.split_components()
+        final = self.final[0]
+        complement = self.get_new()
+        complement.alphabet = deepcopy(self.alphabet)
+        complement_final = set()
+
+        #get initial states
+        queue = []
+        start_n = self.q1.intersection(self.start)
+        c_or_s_start = self.q2.intersection(self.start)
+        if len(c_or_s_start):
+            start_c = c_or_s_start.intersection(final)
+            start_s = set()
+            c_or_s_start = c_or_s_start - final
+            sposibilities = self.get_posibilities(c_or_s_start)
+            for spos in sposibilities:
+                new_start_c = start_c.union(spos[0])
+                new_start_s = start_s.union(spos[1])
+                start = self.get_ncsb(start_n, new_start_c, new_start_s, deepcopy(new_start_c))
+                queue.append(start)
+                complement.start.add(self.get_text_label(start))
+        else:
+            start = self.get_ncsb(start_n, set(), set(), set())
+            complement.start.add(self.get_text_label(start))
+            queue.append(start)
+
+        done = []
+
+        while len(queue):
+            state_set = queue.pop()
+            done.append(state_set)
+
+            if state_set["s"].intersection(final):
+                # Block if a final state is in S
+                continue
+            if state_set["s"].intersection(state_set["c"]) or state_set["s"].intersection(state_set["b"]):
+                # block if S and C have common state
+                continue
+
+            # add to states and final
+            label = self.get_text_label(state_set)
+            if label not in complement.states:
+                complement.states.add(label)
+            if not len(state_set["b"]) and label not in complement_final:
+                complement_final.add(label)
+
+            for symbol in self.alphabet:
+                # check if every state from C-F has an successor
+
+                block = False
+                check_block = state_set["c"] - final
+                for block_state in check_block:
+                    if block_state not in self.transitions or symbol not in self.transitions[block_state]:
+                        block = True
+                        break
+                if block:
+                    # Blocking because of C-F succesors
+                    continue
+
+                new_n = self.post(self.delta1, state_set["n"], symbol)
+                new_s = self.post(self.delta2, state_set["s"], symbol)
+                if new_s.intersection(final):
+                    # Blocking because S has final successor
+                    continue
+
+                if len(state_set["b"]):
+                    new_c = self.post(self.delta2, state_set["c"], symbol).union(self.post(self.deltat, state_set["n"], symbol))
+                    new_b = self.post(self.delta2, state_set["b"] - final, symbol)
+                    if len(new_b.intersection(new_s)):
+                        continue
+                    b_or_s = self.post(self.delta2, state_set["b"].intersection(final), symbol)
+                    new_b = new_b.union(b_or_s.intersection(final))
+                    b_or_s = b_or_s - final
+                    if len(b_or_s):
+                        # generate all possible B'/S' combinations
+                        posibilities = self.get_posibilities(b_or_s)
+                        for pos in posibilities:
+                            new_new_b = new_b.union(pos[0])
+                            new_new_s = new_s.union(pos[1])
+                            if len(new_new_b.intersection(new_new_s)):
+                                continue
+                            new_new_c = new_c - new_new_s
+
+                            new_state = self.get_ncsb(new_n, new_new_c, new_new_s, new_new_b)
+                            new_label = self.get_text_label(new_state)
+                            complement.transitions = self.add_trans(complement.transitions, label, symbol, new_label)
+                            # save for later processing
+                            if new_state not in queue and new_state not in done:
+                                queue.append(new_state)
+                    else:
+                        new_state = self.get_ncsb(new_n, new_c - new_s, new_s, new_b)
+                        new_label = self.get_text_label(new_state)
+                        complement.transitions = self.add_trans(complement.transitions, label, symbol, new_label)
+                        # save for later processing
+                        if new_state not in queue and new_state not in done:
+                            queue.append(new_state)
+                else:
+                    """
+                    new_c = set()
+                    c_or_s = self.post(self.delta2, state_set["c"], symbol).union(
+                        self.post(self.deltat, state_set["n"], symbol))
+                    """
+
+                    c_or_s = self.post(self.delta2, state_set["c"], symbol).union(
+                        self.post(self.deltat, state_set["n"], symbol))
+                    new_c = c_or_s.intersection(final)
+                    c_or_s = c_or_s - final
+                    if len(c_or_s):
+                        # generate all possible B'/S' combinations
+                        posibilities = self.get_posibilities(c_or_s)
+                        for pos in posibilities:
+                            new_new_c = new_c.union(pos[0])
+                            new_new_s = new_s.union(pos[1])
+                            if len(new_new_c.intersection(new_new_s)):
+                                continue
+
+                            new_b = deepcopy(new_new_c)
+
+                            new_state = self.get_ncsb(new_n, new_new_c, new_new_s, new_b)
+                            new_label = self.get_text_label(new_state)
+                            complement.transitions = self.add_trans(complement.transitions, label, symbol, new_label)
+                            # save for later processing
+                            if new_state not in queue and new_state not in done:
+                                queue.append(new_state)
+                    else:
+                        new_state = self.get_ncsb(new_n, new_c, new_s, deepcopy(new_c))
+                        new_label = self.get_text_label(new_state)
+                        complement.transitions = self.add_trans(complement.transitions, label, symbol, new_label)
+                        # save for later processing
+                        if new_state not in queue and new_state not in done:
+                            queue.append(new_state)
+
+        complement.final.append(complement_final)
+        complement = complement.clear_transitions()
+
+        return complement
+
+    def complement_ncsb_por(self):
+        # get division to Qn,Qd, delta_n, delta_t, delta_d
+        self.split_components()
+        final = self.final[0]
+        complement = self.get_new()
+        complement.alphabet = deepcopy(self.alphabet)
+        complement_final = set()
+
+        #get initial states
+        start_n = self.q1.intersection(self.start)
+        c_start = self.q2.intersection(self.start)
+        start = self.get_ncsb(start_n, c_start, set(), deepcopy(c_start))
+        complement.start.add(self.get_text_label(start))
+
+        queue = []
+        queue.append(start)
+        done = []
+
+        while len(queue):
+            state_set = queue.pop()
+            done.append(state_set)
+
+            if state_set["s"].intersection(final):
+                # Block if a final state is in S
+                continue
+            if state_set["s"].intersection(state_set["c"]) or state_set["s"].intersection(state_set["b"]):
+                # block if S and C have common state
+                continue
+
+            # add to states and final
+            label = self.get_text_label(state_set)
+            if label not in complement.states:
+                complement.states.add(label)
+            if not len(state_set["b"]) and label not in complement_final:
+                complement_final.add(label)
+
+            for symbol in self.alphabet:
+                # check if every state from C-F has an successor
+                block = False
+                check_block = state_set["c"] - final
+                for block_state in check_block:
+                    if block_state not in self.transitions or symbol not in self.transitions[block_state]:
+                        block = True
+                        break
+                if block:
+                    # Blocking because of C-F succesors
+                    continue
+
+                # compute N', C', S'
+                new_n = self.post(self.delta1, state_set["n"], symbol)
+                new_s = self.post(self.delta2, state_set["s"], symbol)
+                if new_s.intersection(final):
+                    # Blocking because S has final successor
+                    continue
+
+                new_c = self.post(self.deltat, state_set["n"], symbol).union(
+                    self.post(self.delta2, state_set["c"], symbol))
+                if len(state_set["b"]):
+                    new_b = self.post(self.delta2, state_set["b"], symbol).intersection(new_c)
+                else:
+                    new_b = deepcopy(new_c)
+
+                new_set = self.get_ncsb(new_n, new_c, new_s, new_b)
+                if new_set not in queue and new_set not in done:
+                    new_label = self.get_text_label(new_set)
+                    complement.transitions = self.add_trans(complement.transitions, label, symbol, new_label)
+                    queue.append(new_set)
+                else:
+
+                    c_or_s = self.post(self.deltat, state_set["n"], symbol).union(
+                        self.post(self.delta2, state_set["c"], symbol))
+                    # remove final states - they must do in C
+                    new_c = c_or_s.intersection(final)
+                    c_or_s = c_or_s - final
+                    if len(c_or_s):
+                        # generate all possible C'/S' combinations
+                        posibilities = self.get_posibilities(c_or_s)
+                        for pos in posibilities:
+                            new_new_c = new_c.union(pos[0])
+                            new_new_s = new_s.union(pos[1])
+
+                            if len(state_set["b"]):
+                                new_b = self.post(self.delta2, state_set["b"], symbol).intersection(new_new_c)
+                            else:
+                                new_b = deepcopy(new_new_c)
+
+                            if new_new_s.intersection(new_new_c) or new_new_s.intersection(new_b):
+                                # block if S and C have common state
+                                continue
+
+                            new_state = self.get_ncsb(new_n, new_new_c, new_new_s, new_b)
+                            new_label = self.get_text_label(new_state)
+                            complement.transitions = self.add_trans(complement.transitions, label, symbol, new_label)
+                            # save for later processing
+                            if new_state not in queue and new_state not in done:
+                                queue.append(new_state)
+                    else:
+                        # no C'/S' nondeterminism, just add new state
+                        if len(state_set["b"]):
+                            new_b = self.post(self.delta2, state_set["b"], symbol).intersection(new_c)
+                        else:
+                            new_b = deepcopy(new_c)
+                        new_state = self.get_ncsb(new_n, new_c, new_s, new_b)
+                        new_label = self.get_text_label(new_state)
+                        complement.transitions = self.add_trans(complement.transitions, label, symbol, new_label)
+                        # save for later processing
+                        if new_state not in queue and new_state not in done:
+                            queue.append(new_state)
+
+        complement.final.append(complement_final)
+        complement = complement.clear_transitions()
+
+        return complement
+
+    def clear_transitions(self):
+        self.start = self.start.intersection(self.states)
+        self.final[0] = self.states.intersection(self.final[0])
+
+        for state in deepcopy(self.transitions):
+            if state not in self.states:
+                del self.transitions[state]
+                continue
+            for label in deepcopy(self.transitions[state]):
+                for endstate in deepcopy(self.transitions[state][label]):
+                    if endstate not in self.states:
+                        self.transitions[state][label].remove(endstate)
+                if not len(self.transitions[state][label]):
+                    del self.transitions[state][label]
+            if not len(self.transitions[state]):
+                del self.transitions[state]
+        return self
 
     @staticmethod
     def get_ncsba(n, c, s, b, a):
