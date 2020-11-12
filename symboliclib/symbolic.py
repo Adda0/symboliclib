@@ -514,3 +514,11 @@ class Symbolic(object):
         """
 
         self.automaton_name = new_name
+
+    def change_initial_states(self, new_initial_states):
+        """
+        Change automaton's initial states.
+        :param new_initial_states: Set of the new initial states for the automaton.
+        """
+
+        self.start = new_initial_states
