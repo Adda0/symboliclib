@@ -498,3 +498,19 @@ class Symbolic(object):
         for x in lst:
             result.extend([subset + [x] for subset in result])
         return result
+
+    def get_automaton_name(self):
+        """
+        Returns automaton name.
+        :return: automaton name
+        """
+
+        return self.automaton_name
+
+    def rename_automaton(self, new_name):
+        """
+        Rename automaton.
+        :param new_name: Set automaton name to this name.
+        """
+
+        self.automaton_name = new_name

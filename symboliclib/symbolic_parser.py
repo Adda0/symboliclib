@@ -23,6 +23,7 @@ def parse(testfile):
     parse_transitions = False
     alpha = set()
     automaton_type = ""
+    automaton_name = ""
     states = set()
     final = set()
     transitions = {}
@@ -77,6 +78,9 @@ def parse(testfile):
                 continue
 
             if line.startswith("Automaton "):
+                line_split = line.split(' ')
+                automaton_name = line_split[1]
+
                 if "@" in line:
                     automaton_type = line.split("@")[1].strip()
                     if automaton_type == "INFA":
@@ -144,6 +148,7 @@ def parse(testfile):
     automaton.final = final
     automaton.transitions = transitions
     automaton.automaton_type = automaton_type
+    automaton.automaton_name = automaton_name
     automaton.is_deterministic()
     automaton.label = label
     automaton.is_epsilon_free = epsilon_free
