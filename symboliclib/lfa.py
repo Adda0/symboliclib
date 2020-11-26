@@ -394,3 +394,19 @@ class LFA(SA):
                         result.append((q, new_superstates))
 
         return result
+
+    def unify_transition_symbols(self):
+        """
+        Substitute every transition symbol with '*'.
+        """
+
+        new_transitions = {}
+
+        for from_state, transition_set in self.transitions.items():
+            for symbol, end_state in self.transitions[from_state].items():
+                if from_state not in new_transitions:
+                    new_transitions[from_state] = {'*': end_state}
+                else:
+                    new_transitions[from_state]['*'] += end_state
+
+        self.transitions = new_transitions
