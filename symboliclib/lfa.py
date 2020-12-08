@@ -410,3 +410,39 @@ class LFA(SA):
                     new_transitions[from_state]['*'] += end_state
 
         self.transitions = new_transitions
+
+    def count_formulas_for_lfa(self):
+        """
+        Computes formulas for the LFA for accepted strings.
+        :return: dictionary of formulas for the LFA accept states
+        """
+        def get_next_state():
+            nonlocal curr_state
+            nonlocal length
+            curr_state = {self.transitions.get(next(iter(curr_state))).get('*')[0]}
+            length += 1
+
+
+        curr_state = self.start
+        length = 0
+        formulas_for_states = {}
+        last_state_to_stop = ''
+
+        while True:
+            if not curr_state.issubset(self.final):
+                get_next_state()
+                curr_state_iter = next(iter(curr_state))
+            else:  # the current state is also an accept state
+                try:
+                    if not formulas_for_states[curr_state_iter][0]:
+                        formulas_for_states[curr_state_iter][0] = True
+                        formulas_for_states[curr_state_iter][1] += ' + ' + str(length - int(formulas_for_states[curr_state_iter][1])) + 'k'
+                    if last_state_to_stop == curr_state_iter:
+                        break
+                except KeyError:
+                    formulas_for_states[curr_state_iter] = [False, str(length)]
+                    last_state_to_stop = curr_state_iter
+
+                get_next_state()
+
+        return formulas_for_states
