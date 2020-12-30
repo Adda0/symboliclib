@@ -416,11 +416,15 @@ class LFA(SA):
         Computes formulas for the LFA for accepted strings.
         :return: dictionary of formulas for the LFA accept states
         """
+
         def get_next_state():
             nonlocal curr_state
             nonlocal length
-            curr_state = {self.transitions.get(next(iter(curr_state))).get('*')[0]}
-            length += 1
+            try:
+                curr_state = {self.transitions.get(next(iter(curr_state))).get('*')[0]}
+                length += 1
+            except AttributeError:
+                pass
 
 
         curr_state = self.start
@@ -436,11 +440,11 @@ class LFA(SA):
                 try:
                     if not formulas_for_states[curr_state_iter][0]:
                         formulas_for_states[curr_state_iter][0] = True
-                        formulas_for_states[curr_state_iter][1] += ' + ' + str(length - int(formulas_for_states[curr_state_iter][1])) + 'k'
+                        formulas_for_states[curr_state_iter][2] = length - int(formulas_for_states[curr_state_iter][1])
                     if last_state_to_stop == curr_state_iter:
                         break
                 except KeyError:
-                    formulas_for_states[curr_state_iter] = [False, str(length)]
+                    formulas_for_states[curr_state_iter] = [False, length, 0]
                     last_state_to_stop = curr_state_iter
 
                 get_next_state()
