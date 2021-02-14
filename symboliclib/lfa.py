@@ -438,6 +438,7 @@ class LFA(SA):
                 curr_state_iter = next(iter(curr_state))
             else:  # the current state is also an accept state
                 try:
+                    curr_state_iter = next(iter(curr_state))
                     if not formulas_for_states[curr_state_iter][0]:
                         formulas_for_states[curr_state_iter][0] = True
                         formulas_for_states[curr_state_iter][2] = length - int(formulas_for_states[curr_state_iter][1])
@@ -446,6 +447,8 @@ class LFA(SA):
                 except KeyError:
                     formulas_for_states[curr_state_iter] = [False, length, 0]
                     last_state_to_stop = curr_state_iter
+                except StopIteration:
+                    break
 
                 get_next_state()
 
