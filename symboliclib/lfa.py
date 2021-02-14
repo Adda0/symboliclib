@@ -453,3 +453,57 @@ class LFA(SA):
                 get_next_state()
 
         return formulas_for_states
+
+    def determinize_check(self, det_states):
+        """
+        Converts automaton into a deterministic one, but halts on the first occurance of a state from argument det_states.
+        Stores the result in attribute determinized.
+        :param det_states: set of states of some automaton.
+        :return: Determinised automaton.
+        """
+        # automaton is already deterministic
+        if self.deterministic:
+            self.determinized = deepcopy(self)
+            return deepcopy(self)
+
+        if self.determinized is not None and self.determinized.is_deterministic():
+            return deepcopy(self.determinized)
+
+        det = self.get_new()
+        det.start = set()
+        det.label = self.label
+        det.start.add(",".join(self.start))
+
+        det.alphabet = self.alphabet.copy()
+
+        queue = set()
+        queue.add(",".join(self.start))
+
+        checked = []
+        while len(queue) > 0:
+            state = queue.pop()
+            checked.append(state)
+
+            if state in det_states:
+                break
+
+            det.states.add(state)
+
+            # add final states
+            for old_state in state.split(","):
+                if old_state in self.final:
+                    det.final.add(state)
+
+            new_trans = self.get_deterministic_transitions(state)
+            det.transitions[state] = new_trans
+            for label in new_trans:
+                for endstate in new_trans[label]:
+                    if endstate not in queue and endstate not in checked:
+                        queue.add(endstate)
+
+        det = det.simple_reduce()
+        det.is_deterministic()
+
+        self.determinized = det
+
+        return det
