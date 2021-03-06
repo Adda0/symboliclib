@@ -410,6 +410,7 @@ class LFA(SA):
                     new_transitions[from_state]['*'] += end_state
 
         self.transitions = new_transitions
+        self.is_deterministic()
 
     def count_formulas_for_lfa(self):
         """
@@ -420,12 +421,14 @@ class LFA(SA):
         def get_next_state():
             nonlocal curr_state
             nonlocal length
+            if self.transitions[list(curr_state)[0]] == {}:
+                return False
             try:
                 curr_state = {self.transitions.get(next(iter(curr_state))).get('*')[0]}
                 length += 1
-            except AttributeError:
+            except (AttributeError, TypeError):
                 pass
-
+            return True
 
         curr_state = self.start
         length = 0
@@ -434,7 +437,9 @@ class LFA(SA):
 
         while True:
             if not curr_state.issubset(self.final):
-                get_next_state()
+                empty = get_next_state()
+                if not empty:
+                    return formulas_for_states
                 curr_state_iter = next(iter(curr_state))
             else:  # the current state is also an accept state
                 try:
@@ -450,60 +455,56 @@ class LFA(SA):
                 except StopIteration:
                     break
 
-                get_next_state()
+                empty = get_next_state()
+                if not empty:
+                    return formulas_for_states
 
         return formulas_for_states
 
-    def determinize_check(self, det_states):
+    def determinize_check(self, fa_handle_and_loop):
         """
-        Converts automaton into a deterministic one, but halts on the first occurance of a state from argument det_states.
+        Converts automaton into a deterministic one, but halts on the first occurance of a state from argument fa_handle_and_loop representing the current state of handle and loop automaton.
         Stores the result in attribute determinized.
-        :param det_states: set of states of some automaton.
-        :return: Determinised automaton.
+        :param fa_handle_and_loop: Handle and loop automaton for the given NFA.
         """
-        # automaton is already deterministic
-        if self.deterministic:
-            self.determinized = deepcopy(self)
-            return deepcopy(self)
 
-        if self.determinized is not None and self.determinized.is_deterministic():
-            return deepcopy(self.determinized)
+        fa_handle_and_loop.start = set()
+        new_start = ",".join(self.start)
+        if new_start != '':
+            fa_handle_and_loop.start.add(new_start)
+        else:
+            return
 
-        det = self.get_new()
-        det.start = set()
-        det.label = self.label
-        det.start.add(",".join(self.start))
+        fa_handle_and_loop.label = self.label
 
-        det.alphabet = self.alphabet.copy()
+        fa_handle_and_loop.alphabet = self.alphabet.copy()
 
         queue = set()
         queue.add(",".join(self.start))
 
         checked = []
+
+        found_same_state = False
+
         while len(queue) > 0:
             state = queue.pop()
+            if found_same_state:
+                return
             checked.append(state)
 
-            if state in det_states:
-                break
-
-            det.states.add(state)
+            if state not in fa_handle_and_loop.states:
+                fa_handle_and_loop.states.add(state)
+            else:
+                found_same_state = True
 
             # add final states
             for old_state in state.split(","):
                 if old_state in self.final:
-                    det.final.add(state)
+                    fa_handle_and_loop.final.add(state)
 
             new_trans = self.get_deterministic_transitions(state)
-            det.transitions[state] = new_trans
+            fa_handle_and_loop.transitions[state] = new_trans
             for label in new_trans:
                 for endstate in new_trans[label]:
                     if endstate not in queue and endstate not in checked:
                         queue.add(endstate)
-
-        det = det.simple_reduce()
-        det.is_deterministic()
-
-        self.determinized = det
-
-        return det
