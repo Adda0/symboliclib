@@ -37,7 +37,7 @@ def parse(testfile):
                 """if '"' not in line:
                     start.add(parts[1].strip())
                     continue"""
-                if "(" not in line and ")" not in line:
+                if ("(" not in line and ")" not in line) or ('()' in line):
                     start.add(parts[1].strip())
                     continue
 
