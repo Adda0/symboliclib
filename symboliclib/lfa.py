@@ -436,13 +436,23 @@ class LFA(SA):
         formulas_for_states = {}
         last_state_to_stop = ''
 
+        if not self.final:
+            raise AssertionError
+
+        checked = {}
         while True:
             if not curr_state.issubset(self.final):
                 empty = get_next_state()
                 if not empty:
                     return formulas_for_states
                 curr_state_iter = next(iter(curr_state))
+                if curr_state_iter in checked:
+                    break
+                else:
+                    checked[curr_state_iter] = True
+
             else:  # the current state is also an accept state
+                checked = {}
                 try:
                     curr_state_iter = next(iter(curr_state))
                     if not formulas_for_states[curr_state_iter][0]:
