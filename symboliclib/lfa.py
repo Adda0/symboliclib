@@ -424,6 +424,7 @@ class LFA(SA):
             if self.transitions[list(curr_state)[0]] == {}:
                 return False
             try:
+                #print(length)
                 curr_state = {self.transitions.get(next(iter(curr_state))).get('*')[0]}
                 length += 1
             except (AttributeError, TypeError):
@@ -559,10 +560,10 @@ class LFA(SA):
         #a2.print_automaton()
         #intersect.print_automaton()
 
-        print(f"Naive AxB states: {len(self.states) * len(a2.states)}")
-        print(f"Naive intersect operations: {cnt_operations}")
-        print(f"Naive intersect: {len(intersect.states)}")
-        print(f"Naive intersect final: {len(intersect.final)}")
+        print('')
+        print('N', end=' ')
+        print(len(intersect.states), end=' ')
+        print(len(intersect.final), end=' ')
         #intersect = intersect.simple_reduce()
         #print(f"Naive intersect simple_reduce: {len(intersect.states)}")
         #print(f"Naive intersect simple_reduce final: {len(intersect.final)}")
