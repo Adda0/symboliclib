@@ -135,11 +135,11 @@ def parse(testfile):
             if line.startswith("Transitions"):
                 parse_transitions = True
 
-    transitions_reduced = transitions.copy()
-    for state in transitions:
-        if not transitions[state]:
-            del transitions_reduced[state]
-    transitions = transitions_reduced
+    #transitions_reduced = transitions.copy()
+    #for state in transitions:
+    #    if not transitions[state]:
+    #        del transitions_reduced[state]
+    #transitions = transitions_reduced
 
     automaton = type_to_class(automaton_type)
     automaton.alphabet = alpha
@@ -153,13 +153,13 @@ def parse(testfile):
     automaton.label = label
     automaton.is_epsilon_free = epsilon_free
 
-    check_result = automaton.check_automaton()
-    if check_result != "OK":
-        print("ERROR: " + testfile + " : " + check_result)
-        exit(-1)
+    #check_result = automaton.check_automaton()
+    #if check_result != "OK":
+    #    print("ERROR: " + testfile + " : " + check_result)
+    #    exit(-1)
 
-    if automaton.is_epsilon_free and automaton_type != "GBA":
-        automaton = automaton.simple_reduce()
+    #if automaton.is_epsilon_free and automaton_type != "GBA":
+    #    automaton = automaton.simple_reduce()
 
     return automaton
 
