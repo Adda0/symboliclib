@@ -520,7 +520,7 @@ class LFA(SA):
                     if endstate not in queue and endstate not in checked:
                         queue.add(endstate)
 
-    def intersection_count(self, a2):
+    def intersection_count(self, a2, break_when_final):
         """
         Performs intersection of two automata
         :param a2: the second automaton
@@ -549,6 +549,61 @@ class LFA(SA):
 
             if state1 in self.final and state2 in a2.final:
                 intersect.final.add(combined_str)
+                if break_when_final:
+                    break
+
+            if state1 in self.transitions and state2 in a2.transitions:
+                for label in self.transitions[state1]:
+                    if label in a2.transitions[state2]:
+                        endstates = itertools.product(self.transitions[state1][label], a2.transitions[state2][label])
+                        for endstate in endstates:
+                            endstate_str = "[" + endstate[0] + "_1|" + endstate[1] + "_2]"
+
+                            if label not in intersect.transitions[combined_str]:
+                                intersect.transitions[combined_str][label] = [endstate_str]
+                            else:
+                                intersect.transitions[combined_str][label].append(endstate_str)
+
+                            if endstate not in queue and endstate_str not in intersect.states:
+                                queue.append(endstate)
+
+
+        #self.print_automaton()
+        #a2.print_automaton()
+        #intersect.print_automaton()
+
+        #print(cnt_operations)
+        print('')
+        print('N', end=' ')
+        print(len(intersect.states), end=' ')
+        print(len(intersect.final), end=' ')
+        #intersect = intersect.simple_reduce()
+        #print(f"Naive intersect simple_reduce: {len(intersect.states)}")
+        #print(f"Naive intersect simple_reduce final: {len(intersect.final)}")
+        return intersect
+
+    def make_pairs(self, a2, intersect):
+        """
+        Performs intersection of two automata
+        :param a2: the second automaton
+        :return: automaton created by intersection
+        """
+
+        queue = list(itertools.product(self.start, a2.start))
+
+        while len(queue) > 0:
+            combined = queue.pop()
+            state1 = combined[0]
+            state2 = combined[1]
+            combined_str = "[" + state1 + "_1|" + state2 + "_2]"
+            intersect.states.add(combined_str)
+            cnt_operations += 1
+            if combined_str not in intersect.transitions:
+                intersect.transitions[combined_str] = {}
+
+            if state1 in self.final and state2 in a2.final:
+                intersect.final.add(combined_str)
+                #break
 
             if state1 in self.transitions and state2 in a2.transitions:
                 for label in self.transitions[state1]:
