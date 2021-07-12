@@ -124,7 +124,7 @@ class LFA(SA):
                             if endstate not in queue and endstate_str not in intersect.states:
                                 queue.append(endstate)
 
-        intersect = intersect.simple_reduce()
+        #intersect = intersect.simple_reduce()
         return intersect
 
     def simple_reduce(self):
@@ -412,10 +412,10 @@ class LFA(SA):
         self.transitions = new_transitions
         self.is_deterministic()
 
-    def count_formulas_for_lfa(self):
+    def count_formulae_for_lfa(self):
         """
-        Computes formulas for the LFA for accepted strings.
-        :return: dictionary of formulas for the LFA accept states
+        Computes formulae for the LFA for accepted strings.
+        :return: dictionary of formulae for the LFA accept states
         """
 
         def get_next_state():
@@ -433,7 +433,7 @@ class LFA(SA):
 
         curr_state = self.start
         length = 0
-        formulas_for_states = {}
+        formulae_for_states = {}
         last_state_to_stop = ''
 
         if not self.final:
@@ -444,7 +444,7 @@ class LFA(SA):
             if not curr_state.issubset(self.final):
                 empty = get_next_state()
                 if not empty:
-                    return formulas_for_states
+                    return formulae_for_states
                 curr_state_iter = next(iter(curr_state))
                 if curr_state_iter in checked:
                     break
@@ -455,22 +455,22 @@ class LFA(SA):
                 checked = {}
                 try:
                     curr_state_iter = next(iter(curr_state))
-                    if not formulas_for_states[curr_state_iter][0]:
-                        formulas_for_states[curr_state_iter][0] = True
-                        formulas_for_states[curr_state_iter][2] = length - int(formulas_for_states[curr_state_iter][1])
+                    if not formulae_for_states[curr_state_iter][0]:
+                        formulae_for_states[curr_state_iter][0] = True
+                        formulae_for_states[curr_state_iter][2] = length - int(formulae_for_states[curr_state_iter][1])
                     if last_state_to_stop == curr_state_iter:
                         break
                 except KeyError:
-                    formulas_for_states[curr_state_iter] = [False, length, 0]
+                    formulae_for_states[curr_state_iter] = [False, length, 0]
                     last_state_to_stop = curr_state_iter
                 except StopIteration:
                     break
 
                 empty = get_next_state()
                 if not empty:
-                    return formulas_for_states
+                    return formulae_for_states
 
-        return formulas_for_states
+        return formulae_for_states
 
     def determinize_check(self, fa_handle_and_loop):
         """
