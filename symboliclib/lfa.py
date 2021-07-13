@@ -634,6 +634,51 @@ class LFA(SA):
         #print(f"Naive intersect simple_reduce final: {len(intersect.final)}")
         return intersect
 
+    def get_outgoing_transitions_names(self, current_state):
+        """
+        Get outgoing transitions names from the 'current state'.
+        :param current_state: Name of the current state.
+        :return: List of outgoing transitions names.
+        """
+        outgoing_transitions_names = []
+
+        for symbol, target_states in self.transitions[current_state].items():
+            for target_state in target_states:
+                outgoing_transitions_names.append(current_state + '_' + str(symbol) + '_' + str(target_state))
+
+        return outgoing_transitions_names
+
+    def get_ingoing_transitions_names(self, target_state):
+        """
+        Get ingoing transitions names for the 'target state' starting from any other state.
+        :param target_state: Name of the target state to transition to.
+        :return: List of ingoing transitions names.
+        """
+
+        ingoing_transitions_names = []
+
+        for key, value in self.transitions.items():
+            for symbol in value.keys():
+                if target_state in value[symbol]:
+                    ingoing_transitions_names.append(str(key) + '_' + str(symbol) + '_' + target_state)
+
+        return ingoing_transitions_names
+
+    def get_transitions_names(self):
+        """
+        Get transitions names one by one in a list.
+        :return: List of transitions names written one by one.
+        """
+
+        transitions_names = []
+
+        for key, dict_symbol in self.transitions.items():
+            for symbol, target_states in dict_symbol.items():
+                for target_state in target_states:
+                    transitions_names.append(str(key) + '_' + str(symbol) + '_' + str(target_state))
+
+        return transitions_names
+
     def get_outgoing_transitions(self, current_state):
         """
         Get outgoing transitions from the 'current state'.
