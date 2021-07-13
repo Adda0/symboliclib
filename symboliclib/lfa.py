@@ -633,3 +633,30 @@ class LFA(SA):
         #print(f"Naive intersect simple_reduce: {len(intersect.states)}")
         #print(f"Naive intersect simple_reduce final: {len(intersect.final)}")
         return intersect
+
+    def get_outgoing_transitions(self, current_state):
+        """
+        Get outgoing transitions from the 'current state'.
+        :param current_state: Name of the current state.
+        :return: Dictionary of outgoing transitions.
+        """
+        return self.transitions[current_state]
+
+    def get_ingoing_transitions(self, target_state):
+        """
+        Get ingoing transitions for the 'target state' starting from any other state.
+        :param target_state: Name of the target state to transition to.
+        :return: Dictionary of ingoing transitions.
+        """
+
+        ingoing_transitions = {}
+
+        for key, value in self.transitions.items():
+            for symbol in value.keys():
+                if target_state in value[symbol]:
+                    if not key in ingoing_transitions.keys():
+                        ingoing_transitions[key] = {symbol: [] }
+
+                    ingoing_transitions[key][symbol].append(target_state)
+
+        return ingoing_transitions
