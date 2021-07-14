@@ -705,3 +705,20 @@ class LFA(SA):
                     ingoing_transitions[key][symbol].append(target_state)
 
         return ingoing_transitions
+
+    def get_transitions_names_with_symbol(self, symbol):
+        """
+        Get transitions names of transitions using given symbol.
+        :param symbol: Name of the symbol used by the transitions to be returned.
+        :return: List of transitions names using  given symbol.
+        """
+
+        transitions_names = []
+
+        for key, dict_symbol in self.transitions.items():
+            for used_symbol, target_states in dict_symbol.items():
+                for target_state in target_states:
+                    if used_symbol == symbol:
+                        transitions_names.append(str(key) + '_' + str(symbol) + '_' + str(target_state))
+
+        return transitions_names
