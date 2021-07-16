@@ -572,14 +572,6 @@ class LFA(SA):
         #a2.print_automaton()
         #intersect.print_automaton()
 
-        #print(cnt_operations)
-        print('')
-        print('N', end=' ')
-        print(len(intersect.states), end=' ')
-        print(len(intersect.final), end=' ')
-        #intersect = intersect.simple_reduce()
-        #print(f"Naive intersect simple_reduce: {len(intersect.states)}")
-        #print(f"Naive intersect simple_reduce final: {len(intersect.final)}")
         return intersect
 
     def make_pairs(self, a2, intersect):
