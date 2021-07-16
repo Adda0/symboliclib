@@ -634,9 +634,12 @@ class LFA(SA):
         """
         outgoing_transitions_names = []
 
-        for symbol, target_states in self.transitions[current_state].items():
-            for target_state in target_states:
-                outgoing_transitions_names.append(current_state + '_' + str(symbol) + '_' + str(target_state))
+        try:
+            for symbol, target_states in self.transitions[current_state].items():
+                for target_state in target_states:
+                    outgoing_transitions_names.append(current_state + '_' + str(symbol) + '_' + str(target_state))
+        except KeyError:
+            pass
 
         return outgoing_transitions_names
 

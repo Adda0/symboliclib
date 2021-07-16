@@ -318,7 +318,8 @@ class Symbolic(object):
             export_str += "x -> " + state + "\n"
         for trans_group in sorted(self.transitions):
             start_state = trans_group
-            for trans_label in sorted(self.transitions[trans_group]):
+            for trans_label in self.transitions[trans_group]:
+            #for trans_label in sorted(self.transitions[trans_group]):
                 for trans_end in self.transitions[trans_group][trans_label]:
                     end_state = trans_end
                     if self.automaton_type == "LFA":
@@ -522,3 +523,47 @@ class Symbolic(object):
         """
 
         self.start = new_initial_states
+
+    def remove_useless_transitions(self):
+        """
+        Remove useless transitions leading to states not in self.states set.
+        """
+
+        copied_transitions = deepcopy(self.transitions)
+
+        for state in copied_transitions:
+            for symbol in copied_transitions[state]:
+                for target_state in copied_transitions[state][symbol]:
+                    if target_state not in self.states:
+                        self.transitions[state][symbol].remove(target_state)
+                        if not self.transitions[state][symbol]:
+                            del self.transitions[state][symbol]
+
+    def remove_abstract_final_state(self, abstract_final_symbol, abstract_final_state = ''):
+        """
+        Remove abstract final symbol, abstract final state and make the states leading to abstract final state throught abstract final symbol final states.
+        :param abstract_final_symbol: Used abstract final symbol leading to abstract final state.
+        :param abstract_final_state: Used abstract final state.
+        """
+
+        abstract_final_state_removed = False
+        copied_transitions = deepcopy(self.transitions)
+
+        if not abstract_final_state:
+            abstract_final_state = self.final.pop()
+            abstract_final_state_removed = True
+        else:
+            abstract_final_state += ',' + abstract_final_state
+        if not abstract_final_state:
+            return
+
+        for state in copied_transitions:
+            for symbol in copied_transitions[state]:
+                if symbol == abstract_final_symbol:
+                    self.final.add(state)
+                    del self.transitions[state][symbol]
+
+        # Remove abstract final state from final states set and states set.
+        self.states.remove(abstract_final_state)
+        if not abstract_final_state_removed:
+            self.final.remove(abstract_final_state)
